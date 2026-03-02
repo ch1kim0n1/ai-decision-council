@@ -40,7 +40,6 @@ Issues = "https://github.com/pomoika/hackai26-pre-code/issues"
 
 [project.scripts]
 ai-decision-council = "ai_decision_council.cli:main"
-llm-council = "ai_decision_council.cli:main"
 
 [project.optional-dependencies]
 dev = [

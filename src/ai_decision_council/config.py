@@ -134,19 +134,4 @@ def _load_default_config() -> CouncilConfig:
 
 _DEFAULT_CONFIG = _load_default_config()
 
-# Backward-compatible module constants used by older imports.
-API_KEY = _DEFAULT_CONFIG.api_key
-API_URL = _DEFAULT_CONFIG.api_url
-COUNCIL_MODELS = list(_DEFAULT_CONFIG.models or [])
-CHAIRMAN_MODEL = _DEFAULT_CONFIG.chairman_model or (
-    COUNCIL_MODELS[0] if COUNCIL_MODELS else "provider/model-a"
-)
-TITLE_MODEL = _DEFAULT_CONFIG.title_model or CHAIRMAN_MODEL
-MAX_RETRIES = _DEFAULT_CONFIG.max_retries
-RETRY_BACKOFF_SECONDS = _DEFAULT_CONFIG.retry_backoff_seconds
-STAGE_TIMEOUT_SECONDS = _DEFAULT_CONFIG.stage_timeout_seconds
-TITLE_TIMEOUT_SECONDS = _DEFAULT_CONFIG.title_timeout_seconds
 
-# Legacy aliases
-OPENROUTER_API_KEY = API_KEY
-OPENROUTER_API_URL = API_URL

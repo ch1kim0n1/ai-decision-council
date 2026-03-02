@@ -4,14 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
-from .config import (
-    CHAIRMAN_MODEL,
-    COUNCIL_MODELS,
-    STAGE_TIMEOUT_SECONDS,
-    TITLE_MODEL,
-    TITLE_TIMEOUT_SECONDS,
-    CouncilConfig,
-)
+from .config import CouncilConfig
 from .providers.base import ProviderAdapter, ProviderError
 from .providers.openrouter import OpenRouterAdapter
 from .schemas import ModelRunError
@@ -355,7 +348,7 @@ async def stage3_synthesize_final(
         user_query=user_query,
         stage1_results=stage1_results,
         stage2_results=stage2_results,
-        chairman_model=config.chairman_model or CHAIRMAN_MODEL,
+        chairman_model=config.chairman_model,
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
     )
@@ -425,7 +418,7 @@ async def generate_conversation_title(
     adapter = adapter or _default_adapter(config)
     title, _ = await _generate_conversation_title_internal(
         user_query=user_query,
-        title_model=config.title_model or TITLE_MODEL,
+        title_model=config.title_model,
         adapter=adapter,
         timeout=config.title_timeout_seconds,
     )

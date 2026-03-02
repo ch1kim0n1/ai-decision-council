@@ -1,8 +1,8 @@
 """Reusable ai-decision-council core library."""
 
-from .bridge import CouncilBridge, CouncilResult, ModelRunError
 from .client import Council
 from .config import CouncilConfig
+from .schemas import CouncilResult, ModelRunError
 from .council import (
     calculate_aggregate_rankings,
     generate_conversation_title,
@@ -42,7 +42,6 @@ def create_fastapi_router(*args, **kwargs):
 __all__ = [
     "Council",
     "CouncilConfig",
-    "CouncilBridge",
     "CouncilResult",
     "ModelRunError",
     "ProviderAdapter",
