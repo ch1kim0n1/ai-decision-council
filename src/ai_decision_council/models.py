@@ -2,7 +2,6 @@
 
 from typing import List
 
-
 DEFAULT_MODEL_CATALOG: List[str] = [
     "openai/gpt-5.1",
     "anthropic/claude-sonnet-4.5",

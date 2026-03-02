@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
+import pytest
 
 from ai_decision_council.providers.anthropic import AnthropicAdapter
-from ai_decision_council.providers.ollama import OllamaAdapter
-from ai_decision_council.providers.openai import OpenAIAdapter
-from ai_decision_council.providers.openrouter import OpenRouterAdapter
 from ai_decision_council.providers.base import (
     ProviderAuthError,
     ProviderRateLimitError,
     ProviderResponse,
     ProviderTimeoutError,
 )
-
+from ai_decision_council.providers.ollama import OllamaAdapter
+from ai_decision_council.providers.openai import OpenAIAdapter
+from ai_decision_council.providers.openrouter import OpenRouterAdapter
 
 # ---------------------------------------------------------------------------
 # Helpers

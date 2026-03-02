@@ -87,7 +87,9 @@ async def _chat_single_model(
         )
     except Exception as exc:  # pragma: no cover - defensive guard
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        _log.model_call_error(model=model, stage=stage, error_code="unexpected_error", message=str(exc))
+        _log.model_call_error(
+            model=model, stage=stage, error_code="unexpected_error", message=str(exc)
+        )
         return (
             model,
             None,
@@ -182,7 +184,8 @@ Here are the responses from different models (anonymized):
 {responses_text}
 
 Your task:
-1. First, evaluate each response individually. For each response, explain what it does well and what it does poorly.
+1. First, evaluate each response individually. For each response, explain what it does well
+   and what it does poorly.
 2. Then, at the very end of your response, provide a final ranking.
 
 IMPORTANT: Your final ranking MUST be formatted EXACTLY as follows:
@@ -246,7 +249,8 @@ async def _stage3_synthesize_final_internal(
         [f"Model: {result['model']}\nRanking: {result['ranking']}" for result in stage2_results]
     )
 
-    chairman_prompt = f"""You are the Chairman of an LLM Council. Multiple AI models have provided responses to a user's question, and then ranked each other's responses.
+    chairman_prompt = f"""You are the Chairman of an LLM Council. Multiple AI models have
+provided responses to a user's question, and then ranked each other's responses.
 
 Original Question: {user_query}
 
@@ -256,7 +260,8 @@ STAGE 1 - Individual Responses:
 STAGE 2 - Peer Rankings:
 {stage2_text}
 
-Your task as Chairman is to synthesize all of this information into a single, comprehensive, accurate answer to the user's original question. Consider:
+Your task as Chairman is to synthesize all of this information into a single, comprehensive,
+accurate answer to the user's original question. Consider:
 - The individual responses and their insights
 - The peer rankings and what they reveal about response quality
 - Any patterns of agreement or disagreement
@@ -290,8 +295,9 @@ async def _generate_conversation_title_internal(
     adapter: ProviderAdapter,
     timeout: float,
 ) -> Tuple[str, List[ModelRunError]]:
-    title_prompt = f"""Generate a very short title (3-5 words maximum) that summarizes the following question.
-The title should be concise and descriptive. Do not use quotes or punctuation in the title.
+    title_prompt = f"""Generate a very short title (3-5 words maximum) that summarizes
+the following question. The title should be concise and descriptive. Do not use quotes
+or punctuation in the title.
 
 Question: {user_query}
 
@@ -453,7 +459,11 @@ async def run_full_council_with_runtime(
     """Run the full pipeline using explicit runtime configuration and adapter."""
     errors: List[ModelRunError] = []
 
-    _log.stage_start("stage1", model_count=len(list(config.models or [])), query_len=len(user_query))
+    _log.stage_start(
+        "stage1",
+        model_count=len(list(config.models or [])),
+        query_len=len(user_query),
+    )
     t_stage1 = time.perf_counter()
     stage1_results, stage1_errors = await _stage1_collect_responses_internal(
         user_query=user_query,

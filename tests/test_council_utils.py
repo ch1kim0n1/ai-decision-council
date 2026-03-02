@@ -10,7 +10,6 @@ from ai_decision_council.council import (
     parse_ranking_from_text,
 )
 
-
 # ---------------------------------------------------------------------------
 # _index_to_label
 # ---------------------------------------------------------------------------
@@ -164,8 +163,16 @@ class TestCalculateAggregateRankings:
         # Two models both voted Response A #1 and Response B #2
         label_map = {"Response A": "m1", "Response B": "m2"}
         stage2 = [
-            {"model": "voter1", "ranking": "FINAL RANKING:\n1. Response A\n2. Response B", "parsed_ranking": ["Response A", "Response B"]},
-            {"model": "voter2", "ranking": "FINAL RANKING:\n1. Response A\n2. Response B", "parsed_ranking": ["Response A", "Response B"]},
+            {
+                "model": "voter1",
+                "ranking": "FINAL RANKING:\n1. Response A\n2. Response B",
+                "parsed_ranking": ["Response A", "Response B"],
+            },
+            {
+                "model": "voter2",
+                "ranking": "FINAL RANKING:\n1. Response A\n2. Response B",
+                "parsed_ranking": ["Response A", "Response B"],
+            },
         ]
         result = calculate_aggregate_rankings(stage2, label_map)
         models_in_result = [r["model"] for r in result]

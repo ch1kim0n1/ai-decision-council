@@ -6,10 +6,11 @@ import logging
 from typing import Callable
 from uuid import uuid4
 
-from ai_decision_council.client import Council
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from ai_decision_council.client import Council
 
 from .backends import AuthBackend, FileStorageBackend, StaticTokenAuthBackend, StorageBackend
 from .helpers import _error_response, _make_envelope

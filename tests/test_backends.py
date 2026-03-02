@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import os
-import pytest
 from pathlib import Path
-from uuid import uuid4
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
+import pytest
 
 from ai_decision_council.api.fastapi.backends import (
+    AuthContext,
     FileStorageBackend,
     StaticTokenAuthBackend,
-    AuthContext,
     _normalize_conversation_id,
     _utc_now_iso,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -248,7 +248,9 @@ class TestStaticTokenAuthBackend:
         assert fp1 == fp2
 
     def test_different_tokens_different_fingerprints(self):
-        assert StaticTokenAuthBackend._fingerprint("abc") != StaticTokenAuthBackend._fingerprint("xyz")
+        assert StaticTokenAuthBackend._fingerprint("abc") != StaticTokenAuthBackend._fingerprint(
+            "xyz"
+        )
 
     def test_from_env_reads_env_var(self):
         with patch.dict(os.environ, {"LLM_COUNCIL_REFERENCE_API_TOKEN": "tok1,tok2"}):

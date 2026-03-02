@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from ai_decision_council.client import Council
 from ai_decision_council.config import CouncilConfig
 from ai_decision_council.providers.base import ProviderResponse
 from ai_decision_council.schemas import CouncilResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers

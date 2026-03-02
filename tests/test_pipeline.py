@@ -8,8 +8,9 @@ smoke tests for the complete pipeline path.
 from __future__ import annotations
 
 from typing import Any, Dict, List
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from ai_decision_council.client import Council
 from ai_decision_council.config import CouncilConfig
@@ -18,7 +19,6 @@ from ai_decision_council.council import (
 )
 from ai_decision_council.providers.base import ProviderError, ProviderResponse
 from ai_decision_council.schemas import CouncilResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -142,7 +142,9 @@ class TestRunFullCouncilPipeline:
     async def test_three_models_pipeline(self):
         cfg = _make_config(models=THREE_MODELS)
         adapter = _make_ranked_adapter(num_models=3)
-        stage1, stage2, stage3, meta = await run_full_council("Question?", config=cfg, adapter=adapter)
+        stage1, stage2, stage3, meta = await run_full_council(
+            "Question?", config=cfg, adapter=adapter
+        )
         assert len(stage1) == 3
         assert "response" in stage3
 
@@ -196,7 +198,10 @@ class TestPipelinePartialFailure:
         )
         assert stage1 == []
         assert stage2 == []
-        assert "error" in stage3.get("model", "").lower() or "fail" in stage3.get("response", "").lower()
+        assert (
+            "error" in stage3.get("model", "").lower()
+            or "fail" in stage3.get("response", "").lower()
+        )
 
 
 # ---------------------------------------------------------------------------

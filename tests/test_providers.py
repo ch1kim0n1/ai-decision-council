@@ -3,22 +3,22 @@
 from __future__ import annotations
 
 import json
-import pytest
-import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import httpx
+import pytest
 
 from ai_decision_council.providers.base import (
     ProviderAuthError,
     ProviderConfigError,
+    ProviderConnectionError,
+    ProviderError,
     ProviderRateLimitError,
+    ProviderResponse,
     ProviderResponseError,
     ProviderTimeoutError,
-    ProviderConnectionError,
-    ProviderResponse,
-    ProviderError,
 )
 from ai_decision_council.providers.openrouter import OpenRouterAdapter
-
 
 # ---------------------------------------------------------------------------
 # Helpers

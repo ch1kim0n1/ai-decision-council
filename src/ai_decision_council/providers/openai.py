@@ -12,8 +12,6 @@ Configuration
 
 from __future__ import annotations
 
-
-
 from .openrouter import OpenRouterAdapter
 
 

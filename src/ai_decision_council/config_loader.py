@@ -5,9 +5,8 @@ Supports YAML and TOML configuration files with environment variable precedence.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 try:
     import tomllib

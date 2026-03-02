@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import os
-import pytest
 from unittest.mock import patch
 
-from ai_decision_council.config import (
-    CouncilConfig,
-    SUPPORTED_PROVIDERS,
-    _split_models,
-    _env_int,
-    _env_float,
-)
-from ai_decision_council.models import DEFAULT_MODEL_COUNT, MIN_MODELS, MAX_MODELS
+import pytest
 
+from ai_decision_council.config import (
+    SUPPORTED_PROVIDERS,
+    CouncilConfig,
+    _env_float,
+    _env_int,
+    _split_models,
+)
+from ai_decision_council.models import DEFAULT_MODEL_COUNT, MAX_MODELS, MIN_MODELS
 
 # ---------------------------------------------------------------------------
 # Helpers

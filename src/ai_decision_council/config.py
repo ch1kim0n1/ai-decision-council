@@ -1,7 +1,7 @@
 """Configuration objects and environment parsing."""
 
-from dataclasses import dataclass, replace
 import os
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -198,18 +198,28 @@ class CouncilConfig:
         else:
             models = None
         model_count_raw: Any = normalized.get("LLM_COUNCIL_MODEL_COUNT", DEFAULT_MODEL_COUNT)
-        model_count: int = int(model_count_raw) if isinstance(model_count_raw, str) else model_count_raw
+        model_count: int = (
+            int(model_count_raw) if isinstance(model_count_raw, str) else model_count_raw
+        )
         chairman_model: str | None = normalized.get("LLM_COUNCIL_CHAIRMAN_MODEL")
         title_model: str | None = normalized.get("LLM_COUNCIL_TITLE_MODEL")
         provider: str = normalized.get("LLM_COUNCIL_PROVIDER", "openrouter")
         max_retries_raw: Any = normalized.get("LLM_COUNCIL_MAX_RETRIES", 2)
-        max_retries: int = int(max_retries_raw) if isinstance(max_retries_raw, str) else max_retries_raw
+        max_retries: int = (
+            int(max_retries_raw) if isinstance(max_retries_raw, str) else max_retries_raw
+        )
         retry_backoff_raw: Any = normalized.get("LLM_COUNCIL_RETRY_BACKOFF_SECONDS", 0.5)
-        retry_backoff: float = float(retry_backoff_raw) if isinstance(retry_backoff_raw, str) else retry_backoff_raw
+        retry_backoff: float = (
+            float(retry_backoff_raw) if isinstance(retry_backoff_raw, str) else retry_backoff_raw
+        )
         stage_timeout_raw: Any = normalized.get("LLM_COUNCIL_STAGE_TIMEOUT_SECONDS", 120.0)
-        stage_timeout: float = float(stage_timeout_raw) if isinstance(stage_timeout_raw, str) else stage_timeout_raw
+        stage_timeout: float = (
+            float(stage_timeout_raw) if isinstance(stage_timeout_raw, str) else stage_timeout_raw
+        )
         title_timeout_raw: Any = normalized.get("LLM_COUNCIL_TITLE_TIMEOUT_SECONDS", 30.0)
-        title_timeout: float = float(title_timeout_raw) if isinstance(title_timeout_raw, str) else title_timeout_raw
+        title_timeout: float = (
+            float(title_timeout_raw) if isinstance(title_timeout_raw, str) else title_timeout_raw
+        )
 
         # Resolve default API URL based on provider if not specified
         if not api_url:
@@ -233,7 +243,9 @@ class CouncilConfig:
         return config.with_resolved_defaults()
 
     @classmethod
-    def from_file_and_env(cls, config_path: str | Path | None = None, **overrides) -> "CouncilConfig":
+    def from_file_and_env(
+        cls, config_path: str | Path | None = None, **overrides
+    ) -> "CouncilConfig":
         """Build config from file and environment with proper precedence.
 
         Precedence (highest to lowest):
@@ -263,7 +275,12 @@ class CouncilConfig:
         env_config = cls.from_env()
         # Only use env config where it was explicitly set (not default)
         env_overrides: dict[str, Any] = {}
-        if os.getenv("LLM_COUNCIL_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY"):
+        if (
+            os.getenv("LLM_COUNCIL_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("ANTHROPIC_API_KEY")
+        ):
             env_overrides["api_key"] = env_config.api_key
         if os.getenv("LLM_COUNCIL_API_URL"):
             env_overrides["api_url"] = env_config.api_url

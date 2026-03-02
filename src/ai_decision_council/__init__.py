@@ -3,11 +3,8 @@
 from .cache import InMemoryCache, ResponseCache, compute_cache_key
 from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenError, CircuitState
 from .client import Council
-from .config import CouncilConfig, SUPPORTED_PROVIDERS
+from .config import SUPPORTED_PROVIDERS, CouncilConfig
 from .config_loader import load_config_file, merge_config_sources, normalize_config_keys
-from .metrics import ExecutionMetrics, MODEL_COSTS, ModelMetrics
-from .observability import configure_logging, get_logger
-from .schemas import CouncilResult, ModelRunError
 from .council import (
     calculate_aggregate_rankings,
     generate_conversation_title,
@@ -17,6 +14,8 @@ from .council import (
     stage2_collect_rankings,
     stage3_synthesize_final,
 )
+from .metrics import MODEL_COSTS, ExecutionMetrics, ModelMetrics
+from .observability import configure_logging, get_logger
 from .providers import (
     AnthropicAdapter,
     OllamaAdapter,
@@ -31,6 +30,7 @@ from .providers import (
     ProviderResponseError,
     ProviderTimeoutError,
 )
+from .schemas import CouncilResult, ModelRunError
 
 
 def create_fastapi_app(*args, **kwargs):

@@ -13,17 +13,17 @@ from typing import Any, Callable, cast
 
 from dotenv import load_dotenv
 
-from .client import Council
-from .config import CouncilConfig
-from .models import DEFAULT_MODEL_CATALOG, MAX_MODELS, MIN_MODELS
+from ._cli_sdk import _write_sdk_files
 from ._cli_templates import (
     BRIDGE_TEMPLATE,
     ENV_TEMPLATE,
     FASTAPI_EMBED_TEMPLATE,
     FASTAPI_STANDALONE_TEMPLATE,
 )
-from ._cli_sdk import _write_sdk_files
 from ._cli_utils import _format_model_list, _write_file
+from .client import Council
+from .config import CouncilConfig
+from .models import DEFAULT_MODEL_CATALOG, MAX_MODELS, MIN_MODELS
 
 
 def cmd_init(args: argparse.Namespace) -> int:

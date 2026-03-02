@@ -6,7 +6,7 @@ import hashlib
 import json
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -85,7 +85,9 @@ class RedisCache(CacheBackend[T]):
         try:
             import redis
         except ImportError:
-            raise ImportError("redis package required for RedisCache. Install with: pip install redis")
+            raise ImportError(
+                "redis package required for RedisCache. Install with: pip install redis"
+            )
 
         self.client = redis.Redis(host=host, port=port, db=db, decode_responses=True)
 

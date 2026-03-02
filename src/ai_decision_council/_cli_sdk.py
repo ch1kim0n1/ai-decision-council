@@ -355,7 +355,11 @@ import type {{
 
 type FetchLike = typeof fetch;
 
-function parseSseBlock(block: string): {{ eventType: string; eventId: string | null; data: string }} | null {{
+function parseSseBlock(block: string): {{
+  eventType: string;
+  eventId: string | null;
+  data: string;
+}} | null {{
   let eventType = 'message';
   let eventId: string | null = null;
   const dataLines: string[] = [];
@@ -420,7 +424,11 @@ export class CouncilApiClient {{
     return headers;
   }}
 
-  private static extractError<TData>(payload: ApiEnvelope<TData>): {{ code: string; message: string; requestId?: string }} {{
+  private static extractError<TData>(payload: ApiEnvelope<TData>): {{
+    code: string;
+    message: string;
+    requestId?: string;
+  }} {{
     const first = payload.errors?.[0];
     const requestId =
       (payload.metadata?.['request_id'] as string | undefined) ??
@@ -458,13 +466,16 @@ export class CouncilApiClient {{
   }}
 
   async listConversations(): Promise<ConversationSummary[]> {{
-    const payload = await this.request<{{ conversations?: ConversationSummary[] }}>(`{prefix}/conversations`);
+    const payload = await this.request<{{ conversations?: ConversationSummary[] }}>(
+      `{prefix}/conversations`
+    );
     return payload.data?.conversations ?? [];
   }}
 
   async createConversation(): Promise<Conversation> {{
-    const payload = await this.request<{{ conversation?: Conversation }}>(`{prefix}/conversations`, {{
-      method: 'POST',
+    const payload = await this.request<{{ conversation?: Conversation }}>(
+      `{prefix}/conversations`,
+      {{ method: 'POST' }},
     }});
     return payload.data?.conversation ?? ({{}} as Conversation);
   }}

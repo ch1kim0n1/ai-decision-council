@@ -24,7 +24,6 @@ import sys
 import time
 from typing import Any, Generator, cast
 
-
 _LOGGER_NAME = "ai_decision_council"
 _configured = False
 
@@ -178,10 +177,21 @@ class CouncilLogger:
         self.debug("model_call_start", model=model, stage=stage)
 
     def model_call_complete(self, model: str, stage: str, duration_ms: float) -> None:
-        self.debug("model_call_complete", model=model, stage=stage, duration_ms=round(duration_ms, 1))
+        self.debug(
+            "model_call_complete",
+            model=model,
+            stage=stage,
+            duration_ms=round(duration_ms, 1),
+        )
 
     def model_call_error(self, model: str, stage: str, error_code: str, message: str) -> None:
-        self.warning("model_call_error", model=model, stage=stage, error_code=error_code, error_message=message)
+        self.warning(
+            "model_call_error",
+            model=model,
+            stage=stage,
+            error_code=error_code,
+            error_message=message,
+        )
 
     # ------------------------------------------------------------------
     # Internal

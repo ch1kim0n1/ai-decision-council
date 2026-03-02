@@ -6,7 +6,6 @@ import dataclasses
 import time
 from typing import Any
 
-
 # Approximate token costs (USD per 1M tokens) as of March 2026
 # These are estimates and should be updated regularly
 MODEL_COSTS = {

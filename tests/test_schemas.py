@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from ai_decision_council.schemas import CouncilResult, ModelRunError
 
-
 # ---------------------------------------------------------------------------
 # ModelRunError
 # ---------------------------------------------------------------------------

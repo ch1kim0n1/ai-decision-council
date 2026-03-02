@@ -15,7 +15,7 @@ LLM_COUNCIL_REFERENCE_API_TOKEN=
 # VITE_REFERENCE_API_TOKEN=
 
 # Option A: Explicit model list (recommended for full control)
-# LLM_COUNCIL_MODELS=openai/gpt-5.1,anthropic/claude-sonnet-4.5,google/gemini-3-pro-preview,x-ai/grok-4,deepseek/deepseek-r1
+# LLM_COUNCIL_MODELS=openai/gpt-5.1,anthropic/claude-sonnet-4.5,google/gemini-3-pro-preview,...
 
 # Option B: Use curated defaults by count (2-20, default 5)
 LLM_COUNCIL_MODEL_COUNT=5
@@ -92,7 +92,13 @@ app = create_app()
 FASTAPI_EMBED_TEMPLATE = '''"""Embedded FastAPI router example for existing applications."""
 
 from fastapi import FastAPI
-from ai_decision_council.api.fastapi import APISettings, create_router, FileStorageBackend, StaticTokenAuthBackend, InMemoryRateLimiter
+from ai_decision_council.api.fastapi import (
+    APISettings,
+    create_router,
+    FileStorageBackend,
+    StaticTokenAuthBackend,
+    InMemoryRateLimiter,
+)
 from ai_decision_council import Council
 
 

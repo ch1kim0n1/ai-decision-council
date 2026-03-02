@@ -12,14 +12,13 @@ from unittest.mock import patch
 import pytest
 
 from ai_decision_council.observability import (
+    _LOGGER_NAME,
     CouncilLogger,
     _JsonFormatter,
-    _LOGGER_NAME,
     configure_logging,
     get_logger,
     timed_stage,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -171,7 +170,9 @@ class TestCouncilLoggerMethods:
 
     def test_model_call_error(self):
         log = get_logger("test.model_error")
-        log.model_call_error(model="bad-model", stage="stage2", error_code="auth_error", message="msg")
+        log.model_call_error(
+            model="bad-model", stage="stage2", error_code="auth_error", message="msg"
+        )
         records = self._get_records()
         assert any(r.get("error_code") == "auth_error" for r in records)
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, cast
+from typing import Any, cast
 
 from .config import CouncilConfig
 from .council import run_full_council_with_runtime

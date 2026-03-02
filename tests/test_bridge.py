@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from ai_decision_council.bridge import CouncilBridge
 from ai_decision_council.config import CouncilConfig
 from ai_decision_council.providers.base import ProviderResponse
 from ai_decision_council.schemas import CouncilResult
-
 
 TWO_MODELS = ["openai/gpt-4o", "anthropic/claude-3-haiku"]
 

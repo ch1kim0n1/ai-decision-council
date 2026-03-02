@@ -31,7 +31,6 @@ from .base import (
     ProviderTimeoutError,
 )
 
-
 _ANTHROPIC_VERSION = "2023-06-01"
 _DEFAULT_MAX_TOKENS = 4096
 

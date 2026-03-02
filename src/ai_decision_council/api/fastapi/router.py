@@ -7,6 +7,9 @@ import logging
 from typing import Any, Callable
 from uuid import UUID, uuid4
 
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
+
 from ai_decision_council.client import Council
 from ai_decision_council.council import (
     calculate_aggregate_rankings,
@@ -15,8 +18,6 @@ from ai_decision_council.council import (
     stage2_collect_rankings,
     stage3_synthesize_final,
 )
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
 
 from .backends import StorageBackend
 from .helpers import (
@@ -31,7 +32,6 @@ from .helpers import (
 from .rate_limiter import InMemoryRateLimiter
 from .request_models import SendMessageRequest
 from .settings import APISettings
-
 
 logger = logging.getLogger(__name__)
 
