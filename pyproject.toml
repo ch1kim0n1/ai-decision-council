@@ -1,6 +1,6 @@
 [project]
 name = "ai-decision-council"
-version = "1.2.0"
+version = "1.2.1"
 description = "Multi-model council orchestration with CLI and integration bridge"
 readme = "README.md"
 license = {file = "LICENSE"}
