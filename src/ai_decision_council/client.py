@@ -7,9 +7,13 @@ from typing import Any, Dict
 
 from .config import CouncilConfig
 from .council import run_full_council_with_runtime
+from .observability import configure_logging, get_logger
 from .providers.base import ProviderAdapter
 from .providers.openrouter import OpenRouterAdapter
 from .schemas import CouncilResult, ModelRunError
+
+configure_logging()
+_log = get_logger("client")
 
 
 def _run_sync_coro(coro):
@@ -37,18 +41,53 @@ class Council:
 
         if provider_adapter is not None:
             self.provider_adapter = provider_adapter
-        elif resolved_config.provider == "openrouter":
-            self.provider_adapter = OpenRouterAdapter(
-                api_key=resolved_config.api_key,
-                api_url=resolved_config.api_url,
-                max_retries=resolved_config.max_retries,
-                retry_backoff_seconds=resolved_config.retry_backoff_seconds,
-            )
         else:
-            raise ValueError(
-                f"Unsupported provider '{resolved_config.provider}'. "
-                "Provide a custom provider_adapter."
+            self.provider_adapter = self._build_adapter(resolved_config)
+
+    @staticmethod
+    def _build_adapter(config: CouncilConfig) -> ProviderAdapter:
+        """Instantiate the correct adapter from the resolved config."""
+        provider = config.provider
+        api_key = config.api_key
+        api_url = config.api_url
+        retries = config.max_retries
+        backoff = config.retry_backoff_seconds
+
+        if provider == "openrouter":
+            return OpenRouterAdapter(
+                api_key=api_key,
+                api_url=api_url,
+                max_retries=retries,
+                retry_backoff_seconds=backoff,
             )
+        if provider == "openai":
+            from .providers.openai import OpenAIAdapter
+            return OpenAIAdapter(
+                api_key=api_key,
+                api_url=api_url,
+                max_retries=retries,
+                retry_backoff_seconds=backoff,
+            )
+        if provider == "anthropic":
+            from .providers.anthropic import AnthropicAdapter
+            return AnthropicAdapter(
+                api_key=api_key,
+                api_url=api_url,
+                max_retries=retries,
+                retry_backoff_seconds=backoff,
+            )
+        if provider == "ollama":
+            from .providers.ollama import OllamaAdapter
+            return OllamaAdapter(
+                api_key=api_key,
+                api_url=api_url,
+                max_retries=retries,
+                retry_backoff_seconds=backoff,
+            )
+        raise ValueError(
+            f"Unsupported provider '{provider}'. "
+            "Provide a custom provider_adapter to Council() for custom integrations."
+        )
 
     @classmethod
     def from_env(cls, **overrides) -> "Council":
@@ -58,6 +97,8 @@ class Council:
 
     async def run(self, prompt: str) -> CouncilResult:
         """Run full council pipeline and return structured result."""
+        _log.info("council_run_start", prompt_len=len(prompt), provider=self.config.provider,
+                  model_count=len(self.config.models or []))
         stage1, stage2, stage3, metadata = await run_full_council_with_runtime(
             user_query=prompt,
             config=self.config,
@@ -77,13 +118,15 @@ class Council:
                     )
                 )
 
-        return CouncilResult(
+        result = CouncilResult(
             stage1=stage1,
             stage2=stage2,
             stage3=stage3,
             metadata=metadata,
             errors=errors,
         )
+        _log.info("council_run_complete", error_count=len(errors))
+        return result
 
     async def ask(self, prompt: str) -> str:
         """Run pipeline and return only final synthesized response text."""

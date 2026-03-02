@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any, Dict, List, Tuple
 
 from .config import CouncilConfig
+from .observability import get_logger
 from .providers.base import ProviderAdapter, ProviderError
 from .providers.openrouter import OpenRouterAdapter
 from .schemas import ModelRunError
+
+_log = get_logger("council")
 
 
 def _index_to_label(index: int) -> str:
@@ -50,8 +54,12 @@ async def _chat_single_model(
     timeout: float,
     stage: str,
 ) -> Tuple[str, Dict[str, Any] | None, ModelRunError | None]:
+    _log.model_call_start(model=model, stage=stage)
+    t0 = time.perf_counter()
     try:
         response = await adapter.chat(model=model, messages=messages, timeout=timeout)
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        _log.model_call_complete(model=model, stage=stage, duration_ms=elapsed_ms)
         return (
             model,
             {
@@ -61,6 +69,8 @@ async def _chat_single_model(
             None,
         )
     except ProviderError as exc:
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        _log.model_call_error(model=model, stage=stage, error_code=exc.code, message=str(exc))
         return (
             model,
             None,
@@ -72,6 +82,8 @@ async def _chat_single_model(
             ),
         )
     except Exception as exc:  # pragma: no cover - defensive guard
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        _log.model_call_error(model=model, stage=stage, error_code="unexpected_error", message=str(exc))
         return (
             model,
             None,
@@ -433,12 +445,16 @@ async def run_full_council_with_runtime(
     """Run the full pipeline using explicit runtime configuration and adapter."""
     errors: List[ModelRunError] = []
 
+    _log.stage_start("stage1", model_count=len(list(config.models or [])), query_len=len(user_query))
+    t_stage1 = time.perf_counter()
     stage1_results, stage1_errors = await _stage1_collect_responses_internal(
         user_query=user_query,
         models=list(config.models or []),
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
     )
+    _log.stage_complete("stage1", (time.perf_counter() - t_stage1) * 1000,
+                        results=len(stage1_results), errors=len(stage1_errors))
     errors.extend(stage1_errors)
 
     if not stage1_results:
@@ -457,6 +473,8 @@ async def run_full_council_with_runtime(
             metadata,
         )
 
+    _log.stage_start("stage2", ranked_responses=len(stage1_results))
+    t_stage2 = time.perf_counter()
     stage2_results, label_to_model, stage2_errors = await _stage2_collect_rankings_internal(
         user_query=user_query,
         stage1_results=stage1_results,
@@ -464,10 +482,14 @@ async def run_full_council_with_runtime(
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
     )
+    _log.stage_complete("stage2", (time.perf_counter() - t_stage2) * 1000,
+                        rankings=len(stage2_results), errors=len(stage2_errors))
     errors.extend(stage2_errors)
 
     aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
 
+    _log.stage_start("stage3", chairman=config.chairman_model)
+    t_stage3 = time.perf_counter()
     stage3_result, stage3_errors = await _stage3_synthesize_final_internal(
         user_query=user_query,
         stage1_results=stage1_results,
@@ -476,6 +498,8 @@ async def run_full_council_with_runtime(
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
     )
+    _log.stage_complete("stage3", (time.perf_counter() - t_stage3) * 1000,
+                        errors=len(stage3_errors))
     errors.extend(stage3_errors)
 
     metadata = {

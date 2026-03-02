@@ -212,16 +212,83 @@ Attempt 3: Wait 1.0s
 ┌──────────────────▼──────────────────────┐
 │    ProviderAdapter (Protocol)           │
 │  async def chat(model, messages, ...) │
-└──────────────────┬──────────────────────┘
-                   │
-    ┌──────────────┴──────────────┐
-    │                             │
-    ▼                             ▼
-OpenRouterAdapter          CustomAdapter
-(Concrete impl.)          (Your own impl.)
+└──────────┬───────┴───────┬─────────────┘
+           │               │
+    ┌──────┴──────┐ ┌──────┴──────────────────────────┐
+    │             │ │                                  │
+    ▼             ▼ ▼                                  ▼
+OpenRouter   OpenAI  Anthropic                    Ollama
+Adapter      Adapter  Adapter                    Adapter
+(default)   (direct) (Messages API)           (local/custom URL)
 ```
 
 This allows swapping providers without changing Stage 1/2/3 logic.
+
+### 5. Supported Providers
+
+| Provider     | Env Key               | Default API URL                                 |
+| ------------ | --------------------- | ----------------------------------------------- |
+| `openrouter` | `OPENROUTER_API_KEY`  | `https://openrouter.ai/api/v1/chat/completions` |
+| `openai`     | `OPENAI_API_KEY`      | `https://api.openai.com/v1/chat/completions`    |
+| `anthropic`  | `ANTHROPIC_API_KEY`   | `https://api.anthropic.com/v1/messages`         |
+| `ollama`     | *(none required)*     | `http://localhost:11434/v1/chat/completions`     |
+
+### 6. Structured Observability
+
+All pipeline stages emit structured log events via the `observability` module:
+
+```
+configure_logging(level="INFO", json_mode=False)
+→ LLM_COUNCIL_LOG_LEVEL env  (DEBUG / INFO / WARNING / ERROR)
+→ LLM_COUNCIL_LOG_JSON  env  (1 to emit newline-delimited JSON)
+
+Events emitted:
+  stage1_start / stage1_complete / stage1_error
+  stage2_start / stage2_complete / stage2_error
+  stage3_start / stage3_complete / stage3_error
+  model_call_start / model_call_complete / model_call_error
+```
+
+Each event carries structured key-value fields (model, stage, duration_ms, error_code, etc.)
+suitable for shipping to log aggregation pipelines (Datadog, Loki, CloudWatch, etc.).
+
+## Module Structure
+
+```
+src/ai_decision_council/
+├── __init__.py              # Public API re-exports
+├── client.py                # Council class (entry point for SDK users)
+├── config.py                # CouncilConfig frozen dataclass + env parsing
+├── council.py               # 3-stage orchestration logic
+├── models.py                # DEFAULT_MODEL_CATALOG, constants
+├── observability.py         # Structured logging (configure_logging, get_logger)
+├── schemas.py               # CouncilResult, ModelRunError data classes
+├── bridge.py                # Optional bridge helper
+├── openrouter.py            # Legacy compatibility shim
+│
+├── providers/               # Provider adapters
+│   ├── __init__.py
+│   ├── base.py              # ProviderAdapter protocol + error hierarchy
+│   ├── openrouter.py        # OpenRouterAdapter (also used by OpenAI/Ollama)
+│   ├── openai.py            # OpenAIAdapter  (direct OpenAI API)
+│   ├── anthropic.py         # AnthropicAdapter  (Anthropic Messages API)
+│   └── ollama.py            # OllamaAdapter  (local Ollama / LM Studio)
+│
+├── api/fastapi/             # Optional FastAPI integration
+│   ├── __init__.py          # Re-exports: create_app, create_router, APISettings
+│   ├── app.py               # create_app() factory
+│   ├── router.py            # create_router() + all endpoint handlers
+│   ├── settings.py          # APISettings dataclass + env helpers
+│   ├── rate_limiter.py      # InMemoryRateLimiter
+│   ├── request_models.py    # SendMessageRequest (Pydantic)
+│   ├── helpers.py           # Internal helpers: _make_envelope, _sse_event, …
+│   └── backends.py          # StorageBackend, AuthBackend, FileStorage, …
+│
+└── _cli_templates.py        # Templates: ENV, bridge, FastAPI, Dockerfile
+    _cli_sdk.py              # SDK generator: Python + TypeScript clients
+    _cli_commands.py         # All cmd_* handler functions
+    cli.py                   # Entry point: build_parser() + main()
+```
 
 ## Data Flow
 

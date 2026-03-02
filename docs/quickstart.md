@@ -89,3 +89,83 @@ Generate OpenAPI + typed SDK explicitly:
 ai-decision-council api openapi --output ./openapi.json
 ai-decision-council api sdk --output-dir ./sdk
 ```
+
+---
+
+## Using Other Providers
+
+By default the council routes through **OpenRouter** (which proxies dozens of models). You can alternatively connect directly to OpenAI, Anthropic, or a local Ollama instance.
+
+### OpenAI Direct
+
+```bash
+export LLM_COUNCIL_PROVIDER=openai
+export OPENAI_API_KEY="sk-..."
+export LLM_COUNCIL_MODELS="gpt-4o,gpt-4o-mini,o1-mini"
+```
+
+### Anthropic Direct
+
+```bash
+export LLM_COUNCIL_PROVIDER=anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+export LLM_COUNCIL_MODELS="claude-opus-4-5,claude-sonnet-4-5,claude-haiku-3-5"
+```
+
+### Ollama (local)
+
+```bash
+export LLM_COUNCIL_PROVIDER=ollama
+# No API key needed — Ollama runs on localhost
+export LLM_COUNCIL_MODELS="llama3.2,mistral,gemma3"
+# Optional: point at a different host
+export LLM_COUNCIL_API_URL=http://gpu-box:11434/v1/chat/completions
+```
+
+### Custom Proxy
+
+Any OpenAI-compatible endpoint works with `openrouter` or `openai` provider + a custom
+`LLM_COUNCIL_API_URL`:
+
+```bash
+export LLM_COUNCIL_PROVIDER=openai
+export LLM_COUNCIL_API_KEY="my-proxy-token"
+export LLM_COUNCIL_API_URL="https://my-internal-proxy/v1/chat/completions"
+export LLM_COUNCIL_MODELS="my-model-a,my-model-b"
+```
+
+### In Python
+
+```python
+from ai_decision_council import Council, AnthropicAdapter
+from ai_decision_council.config import CouncilConfig
+
+cfg = CouncilConfig(
+    api_key="sk-ant-...",
+    provider="anthropic",
+    models=["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-3-5"],
+)
+council = Council(config=cfg)
+print(council.run_sync("What are the tradeoffs of microservices?").final_response)
+```
+
+---
+
+## Enabling Structured Logging
+
+```bash
+export LLM_COUNCIL_LOG_LEVEL=DEBUG     # DEBUG / INFO / WARNING / ERROR
+export LLM_COUNCIL_LOG_JSON=1          # emit newline-delimited JSON logs
+```
+
+Or configure programmatically:
+
+```python
+from ai_decision_council import configure_logging
+
+configure_logging(level="INFO", json_mode=True)
+```
+
+Each pipeline stage emits structured events (`stage1_start`, `model_call_complete`, etc.)
+with duration, model name, and error details — ready for ingestion by Datadog, Loki,
+CloudWatch, etc.

@@ -10,6 +10,18 @@ from .models import DEFAULT_MODEL_CATALOG, DEFAULT_MODEL_COUNT, MAX_MODELS, MIN_
 
 load_dotenv()
 
+# Providers known to this package.  A custom provider_adapter can still be
+# injected directly into Council() regardless of this list.
+SUPPORTED_PROVIDERS = ("openrouter", "openai", "anthropic", "ollama")
+
+# Default API URLs per provider
+_PROVIDER_DEFAULT_URLS: dict[str, str] = {
+    "openrouter": "https://openrouter.ai/api/v1/chat/completions",
+    "openai": "https://api.openai.com/v1/chat/completions",
+    "anthropic": "https://api.anthropic.com/v1/messages",
+    "ollama": "http://localhost:11434/v1/chat/completions",
+}
+
 
 def _split_models(raw_models: str) -> List[str]:
     return [model.strip() for model in raw_models.split(",") if model.strip()]
@@ -86,6 +98,13 @@ class CouncilConfig:
         if self.title_timeout_seconds <= 0:
             raise ValueError("title_timeout_seconds must be > 0")
 
+        if self.provider not in SUPPORTED_PROVIDERS:
+            raise ValueError(
+                f"Unsupported provider '{self.provider}'. "
+                f"Supported: {', '.join(SUPPORTED_PROVIDERS)}.  "
+                "You can also pass a custom provider_adapter to Council()."
+            )
+
         return replace(
             self,
             models=resolved_models,
@@ -99,17 +118,32 @@ class CouncilConfig:
         raw_models = os.getenv("LLM_COUNCIL_MODELS")
         env_models = _split_models(raw_models) if raw_models else None
 
+        provider = os.getenv("LLM_COUNCIL_PROVIDER", "openrouter")
+
+        # Resolve API key: prefer LLM_COUNCIL_API_KEY, then provider-specific key
+        _provider_key_env: dict[str, str] = {
+            "openrouter": "OPENROUTER_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "ollama": "",  # Ollama needs no key
+        }
+        fallback_key_name = _provider_key_env.get(provider, "")
+        api_key = (
+            os.getenv("LLM_COUNCIL_API_KEY")
+            or (os.getenv(fallback_key_name) if fallback_key_name else None)
+        )
+
+        # Resolve default API URL based on provider
+        default_url = _PROVIDER_DEFAULT_URLS.get(provider, "https://openrouter.ai/api/v1/chat/completions")
+
         config = cls(
-            api_key=os.getenv("LLM_COUNCIL_API_KEY") or os.getenv("OPENROUTER_API_KEY"),
-            api_url=os.getenv(
-                "LLM_COUNCIL_API_URL",
-                "https://openrouter.ai/api/v1/chat/completions",
-            ),
+            api_key=api_key,
+            api_url=os.getenv("LLM_COUNCIL_API_URL", default_url),
             models=env_models,
             model_count=_env_int("LLM_COUNCIL_MODEL_COUNT", DEFAULT_MODEL_COUNT),
             chairman_model=os.getenv("LLM_COUNCIL_CHAIRMAN_MODEL"),
             title_model=os.getenv("LLM_COUNCIL_TITLE_MODEL"),
-            provider=os.getenv("LLM_COUNCIL_PROVIDER", "openrouter"),
+            provider=provider,
             max_retries=_env_int("LLM_COUNCIL_MAX_RETRIES", 2),
             retry_backoff_seconds=_env_float("LLM_COUNCIL_RETRY_BACKOFF_SECONDS", 0.5),
             stage_timeout_seconds=_env_float("LLM_COUNCIL_STAGE_TIMEOUT_SECONDS", 120.0),

@@ -1,7 +1,8 @@
 """Reusable ai-decision-council core library."""
 
 from .client import Council
-from .config import CouncilConfig
+from .config import CouncilConfig, SUPPORTED_PROVIDERS
+from .observability import configure_logging, get_logger
 from .schemas import CouncilResult, ModelRunError
 from .council import (
     calculate_aggregate_rankings,
@@ -13,6 +14,9 @@ from .council import (
     stage3_synthesize_final,
 )
 from .providers import (
+    AnthropicAdapter,
+    OllamaAdapter,
+    OpenAIAdapter,
     OpenRouterAdapter,
     ProviderAdapter,
     ProviderAuthError,
@@ -40,11 +44,20 @@ def create_fastapi_router(*args, **kwargs):
 
 
 __all__ = [
+    # Core
     "Council",
     "CouncilConfig",
     "CouncilResult",
     "ModelRunError",
+    "SUPPORTED_PROVIDERS",
+    # Observability
+    "configure_logging",
+    "get_logger",
+    # Providers
     "ProviderAdapter",
+    "AnthropicAdapter",
+    "OllamaAdapter",
+    "OpenAIAdapter",
     "OpenRouterAdapter",
     "ProviderError",
     "ProviderConfigError",
@@ -53,6 +66,7 @@ __all__ = [
     "ProviderTimeoutError",
     "ProviderConnectionError",
     "ProviderResponseError",
+    # Council functions
     "calculate_aggregate_rankings",
     "generate_conversation_title",
     "parse_ranking_from_text",
@@ -60,6 +74,7 @@ __all__ = [
     "stage1_collect_responses",
     "stage2_collect_rankings",
     "stage3_synthesize_final",
+    # FastAPI helpers
     "create_fastapi_app",
     "create_fastapi_router",
 ]

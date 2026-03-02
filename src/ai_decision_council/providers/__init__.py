@@ -1,5 +1,6 @@
 """Provider adapter exports."""
 
+from .anthropic import AnthropicAdapter
 from .base import (
     ProviderAdapter,
     ProviderAuthError,
@@ -11,17 +12,22 @@ from .base import (
     ProviderResponseError,
     ProviderTimeoutError,
 )
+from .ollama import OllamaAdapter
+from .openai import OpenAIAdapter
 from .openrouter import OpenRouterAdapter
 
 __all__ = [
-    "ProviderAdapter",
-    "ProviderResponse",
-    "ProviderError",
-    "ProviderConfigError",
-    "ProviderAuthError",
-    "ProviderRateLimitError",
-    "ProviderTimeoutError",
-    "ProviderConnectionError",
-    "ProviderResponseError",
+    "AnthropicAdapter",
+    "OllamaAdapter",
+    "OpenAIAdapter",
     "OpenRouterAdapter",
+    "ProviderAdapter",
+    "ProviderAuthError",
+    "ProviderConfigError",
+    "ProviderConnectionError",
+    "ProviderError",
+    "ProviderRateLimitError",
+    "ProviderResponse",
+    "ProviderResponseError",
+    "ProviderTimeoutError",
 ]
