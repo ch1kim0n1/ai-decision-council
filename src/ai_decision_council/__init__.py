@@ -1,8 +1,11 @@
 """Reusable ai-decision-council core library."""
 
+from .cache import InMemoryCache, ResponseCache, compute_cache_key
+from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenError, CircuitState
 from .client import Council
 from .config import CouncilConfig, SUPPORTED_PROVIDERS
 from .config_loader import load_config_file, merge_config_sources, normalize_config_keys
+from .metrics import ExecutionMetrics, MODEL_COSTS, ModelMetrics
 from .observability import configure_logging, get_logger
 from .schemas import CouncilResult, ModelRunError
 from .council import (
@@ -51,6 +54,18 @@ __all__ = [
     "CouncilResult",
     "ModelRunError",
     "SUPPORTED_PROVIDERS",
+    # Caching
+    "ResponseCache",
+    "InMemoryCache",
+    "compute_cache_key",
+    # Circuit breaker
+    "CircuitBreaker",
+    "CircuitBreakerOpenError",
+    "CircuitState",
+    # Metrics & cost tracking
+    "ExecutionMetrics",
+    "ModelMetrics",
+    "MODEL_COSTS",
     # Configuration file support
     "load_config_file",
     "merge_config_sources",

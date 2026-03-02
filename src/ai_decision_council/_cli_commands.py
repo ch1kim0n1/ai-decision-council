@@ -18,8 +18,6 @@ from .config import CouncilConfig
 from .models import DEFAULT_MODEL_CATALOG, MAX_MODELS, MIN_MODELS
 from ._cli_templates import (
     BRIDGE_TEMPLATE,
-    DOCKER_COMPOSE_TEMPLATE,
-    DOCKERFILE_TEMPLATE,
     ENV_TEMPLATE,
     FASTAPI_EMBED_TEMPLATE,
     FASTAPI_STANDALONE_TEMPLATE,
@@ -48,16 +46,6 @@ def cmd_init(args: argparse.Namespace) -> int:
                 _write_file(
                     target_dir / "ai_decision_council_fastapi_embedded.py",
                     FASTAPI_EMBED_TEMPLATE,
-                    force=args.force,
-                ),
-                _write_file(
-                    target_dir / "Dockerfile.ai-decision-council",
-                    DOCKERFILE_TEMPLATE,
-                    force=args.force,
-                ),
-                _write_file(
-                    target_dir / "docker-compose.ai-decision-council.yml",
-                    DOCKER_COMPOSE_TEMPLATE,
                     force=args.force,
                 ),
             ]

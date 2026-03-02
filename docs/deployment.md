@@ -40,30 +40,35 @@ ai-decision-council api serve --host localhost --port 8001
 
 ## Kubernetes Deployment
 
-### 1. Container Image
+A complete production-ready Kubernetes manifest is provided in the repository (`k8s-deployment.yaml`). This includes:
 
-Create `Dockerfile`:
+- Deployment with 3 replicas
+- HorizontalPodAutoscaler (3-10 replicas based on CPU/memory)
+- Service and LoadBalancer
+- ConfigMap and Secrets for configuration
+- PodDisruptionBudget for reliability
+- RBAC roles and ServiceAccount
+- Liveness and readiness probes
 
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-RUN pip install --no-cache-dir "ai-decision-council[api]"
-
-EXPOSE 8001
-ENV PYTHONUNBUFFERED=1
-
-CMD ["ai-decision-council", "api", "serve", "--host", "0.0.0.0", "--port", "8001"]
-```
-
-Build and push:
+### Deploy to Kubernetes
 
 ```bash
-docker build -t mycompany/ai-council:1.1.0 .
-docker push mycompany/ai-council:1.1.0
+# Configure your image registry
+kubectl set image deployment/ai-council \
+  ai-council=your-registry/ai-council:1.4.0 \
+  -n production
+
+# Apply manifests
+kubectl apply -f k8s-deployment.yaml
+
+# Verify
+kubectl get pods -n ai-council
+kubectl logs -n ai-council -l app=ai-council
 ```
 
-### 2. Kubernetes Manifest
+### Configuration
+
+Use ConfigMap and Secrets in the manifest to set environment variables:
 
 ```yaml
 apiVersion: v1
@@ -400,7 +405,9 @@ if requests_remaining < 0:
 
 ## CI/CD Pipeline
 
-### Example: GitHub Actions + K8s
+### Example: GitHub Actions + K8s Deployment
+
+Assuming your container image is already built and pushed to a registry, deploy to Kubernetes:
 
 ```yaml
 name: Deploy Council to K8s
@@ -416,37 +423,34 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build Docker image
+      - name: Configure kubectl
         run: |
-          docker build -t mycompany/ai-council:${{ github.ref_name }} .
-          docker tag mycompany/ai-council:${{ github.ref_name }} \
-                     mycompany/ai-council:latest
-
-      - name: Push to registry
-        run: |
-          echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
-          docker push mycompany/ai-council:${{ github.ref_name }}
-          docker push mycompany/ai-council:latest
-
-      - name: Deploy to K8s
-        run: |
-          # Configure kubectl
+          mkdir -p ~/.kube
           echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
 
-          # Update image
+      - name: Deploy manifests
+        run: |
+          # Apply Kubernetes manifests
+          kubectl apply -f k8s-deployment.yaml
+
+          # Update image if needed
           kubectl set image deployment/ai-council \
-            ai-council=mycompany/ai-council:${{ github.ref_name }} \
-            -n production
+            ai-council=your-registry/ai-council:${{ github.ref_name }} \
+            -n ai-council
 
           # Wait for rollout
           kubectl rollout status deployment/ai-council \
-            -n production \
+            -n ai-council \
             --timeout=5m
 
-          # Verify health
-          kubectl run curl --image=curlimages/curl -it --rm -- \
-            curl http://ai-council/v1/health
+      - name: Verify deployment
+        run: |
+          # Check pod health
+          kubectl get pods -n ai-council
+          kubectl logs -n ai-council -l app=ai-council --tail=20
 ```
+
+**Note:** For container builds, use your preferred container registry or CI/CD tool.
 
 ---
 

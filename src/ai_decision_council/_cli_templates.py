@@ -107,25 +107,3 @@ router = create_router(
 app.include_router(router, prefix=settings.api_prefix)
 '''
 
-
-DOCKERFILE_TEMPLATE = """FROM python:3.11-slim
-
-WORKDIR /app
-COPY . /app
-
-RUN pip install --no-cache-dir ai-decision-council[api]
-
-EXPOSE 8001
-CMD ["uvicorn", "ai_decision_council_fastapi_app:app", "--host", "0.0.0.0", "--port", "8001"]
-"""
-
-
-DOCKER_COMPOSE_TEMPLATE = """version: "3.9"
-services:
-  council-api:
-    build: .
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-"""

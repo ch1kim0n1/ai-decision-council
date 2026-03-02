@@ -284,7 +284,7 @@ src/ai_decision_council/
 │   ├── helpers.py           # Internal helpers: _make_envelope, _sse_event, …
 │   └── backends.py          # StorageBackend, AuthBackend, FileStorage, …
 │
-└── _cli_templates.py        # Templates: ENV, bridge, FastAPI, Dockerfile
+└── _cli_templates.py        # Templates: ENV, bridge, FastAPI
     _cli_sdk.py              # SDK generator: Python + TypeScript clients
     _cli_commands.py         # All cmd_* handler functions
     cli.py                   # Entry point: build_parser() + main()

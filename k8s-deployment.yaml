@@ -1,0 +1,209 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-decision-council
+
+---
+# ConfigMap for non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: council-config
+  namespace: ai-decision-council
+data:
+  council.toml: |
+    [ai-decision-council]
+    provider = "openai"
+    model_count = 3
+    max_retries = 2
+    retry_backoff_seconds = 0.5
+    stage_timeout_seconds = 120.0
+    title_timeout_seconds = 30.0
+
+---
+# Secret for API keys (create with: kubectl create secret generic council-secrets ...)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: council-secrets
+  namespace: ai-decision-council
+type: Opaque
+stringData:
+  api-key: "your-api-key-here" # CHANGE THIS
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: council-api
+  namespace: ai-decision-council
+  labels:
+    app: council-api
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: council-api
+  template:
+    metadata:
+      labels:
+        app: council-api
+    spec:
+      serviceAccountName: council
+      containers:
+        - name: council-api
+          image: council-api:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+          env:
+            - name: LLM_COUNCIL_PROVIDER
+              value: "openai"
+            - name: LLM_COUNCIL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: council-secrets
+                  key: api-key
+            - name: LLM_COUNCIL_LOG_LEVEL
+              value: "INFO"
+            - name: LLM_COUNCIL_LOG_JSON
+              value: "1"
+            - name: REDIS_URL
+              value: "redis://council-redis:6379/0"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          volumeMounts:
+            - name: config
+              mountPath: /etc/council
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: council-config
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: council-api
+  namespace: ai-decision-council
+  labels:
+    app: council-api
+spec:
+  type: LoadBalancer
+  selector:
+    app: council-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8001
+      protocol: TCP
+
+---
+# HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: council-api
+  namespace: ai-decision-council
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: council-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: council-api
+  namespace: ai-decision-council
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: council-api
+
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: council
+  namespace: ai-decision-council
+
+---
+# Role (if needed for RBAC)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: council
+  namespace: ai-decision-council
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: council
+  namespace: ai-decision-council
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: council
+subjects:
+  - kind: ServiceAccount
+    name: council
+    namespace: ai-decision-council

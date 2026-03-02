@@ -64,19 +64,19 @@ pip install pyyaml
 All settings from environment variables can be used in config files.
 Key names are lowercase, underscore-separated versions of the env var names:
 
-| Config File Key | Environment Variable | Type | Default |
-|---|---|---|---|
-| `api_key` | `LLM_COUNCIL_API_KEY` | string | (required) |
-| `api_url` | `LLM_COUNCIL_API_URL` | string | provider-specific |
-| `models` | `LLM_COUNCIL_MODELS` | string or list | (from catalog) |
-| `model_count` | `LLM_COUNCIL_MODEL_COUNT` | integer | 5 |
-| `provider` | `LLM_COUNCIL_PROVIDER` | string | "openrouter" |
-| `chairman_model` | `LLM_COUNCIL_CHAIRMAN_MODEL` | string | first model |
-| `title_model` | `LLM_COUNCIL_TITLE_MODEL` | string | chairman model |
-| `max_retries` | `LLM_COUNCIL_MAX_RETRIES` | integer | 2 |
-| `retry_backoff_seconds` | `LLM_COUNCIL_RETRY_BACKOFF_SECONDS` | float | 0.5 |
-| `stage_timeout_seconds` | `LLM_COUNCIL_STAGE_TIMEOUT_SECONDS` | float | 120.0 |
-| `title_timeout_seconds` | `LLM_COUNCIL_TITLE_TIMEOUT_SECONDS` | float | 30.0 |
+| Config File Key         | Environment Variable                | Type           | Default           |
+| ----------------------- | ----------------------------------- | -------------- | ----------------- |
+| `api_key`               | `LLM_COUNCIL_API_KEY`               | string         | (required)        |
+| `api_url`               | `LLM_COUNCIL_API_URL`               | string         | provider-specific |
+| `models`                | `LLM_COUNCIL_MODELS`                | string or list | (from catalog)    |
+| `model_count`           | `LLM_COUNCIL_MODEL_COUNT`           | integer        | 5                 |
+| `provider`              | `LLM_COUNCIL_PROVIDER`              | string         | "openrouter"      |
+| `chairman_model`        | `LLM_COUNCIL_CHAIRMAN_MODEL`        | string         | first model       |
+| `title_model`           | `LLM_COUNCIL_TITLE_MODEL`           | string         | chairman model    |
+| `max_retries`           | `LLM_COUNCIL_MAX_RETRIES`           | integer        | 2                 |
+| `retry_backoff_seconds` | `LLM_COUNCIL_RETRY_BACKOFF_SECONDS` | float          | 0.5               |
+| `stage_timeout_seconds` | `LLM_COUNCIL_STAGE_TIMEOUT_SECONDS` | float          | 120.0             |
+| `title_timeout_seconds` | `LLM_COUNCIL_TITLE_TIMEOUT_SECONDS` | float          | 30.0              |
 
 ## Usage
 
@@ -127,6 +127,7 @@ When using `CouncilConfig.from_file_and_env()`, settings are applied in this pri
 ### Example
 
 Given these layers:
+
 - Config file: `provider = "openai"`, `api_key = "file-key"`
 - Environment: `LLM_COUNCIL_PROVIDER=anthropic` (no API key env var)
 
@@ -140,6 +141,7 @@ values per-environment via environment variables.
 Configuration files support numeric types natively:
 
 **TOML:**
+
 ```toml
 model_count = 3          # integer
 max_retries = 2          # integer
@@ -148,21 +150,24 @@ stage_timeout_seconds = 120.0 # float
 ```
 
 **YAML:**
+
 ```yaml
-model_count: 3           # integer
-max_retries: 2           # integer
-retry_backoff_seconds: 0.5    # float
-stage_timeout_seconds: 120.0  # float
+model_count: 3 # integer
+max_retries: 2 # integer
+retry_backoff_seconds: 0.5 # float
+stage_timeout_seconds: 120.0 # float
 ```
 
 Models can be specified as either a string (comma-separated) or a list:
 
 **TOML string:**
+
 ```toml
 models = "gpt-4o,gpt-4o-mini,o1-mini"
 ```
 
 **YAML list:**
+
 ```yaml
 models:
   - gpt-4o
@@ -188,12 +193,14 @@ with pytest.raises(ValueError):
 ## Best Practices
 
 1. **Separate secrets** — Use environment variables for API keys in production:
+
    ```bash
    export LLM_COUNCIL_API_KEY="$SECRET_KEY"
    ai-decision-council run --prompt "..." --config council.toml
    ```
 
 2. **Version control** — Commit basic config files; add API keys only via environment:
+
    ```toml
    # council.toml (safe to commit)
    provider = "openai"

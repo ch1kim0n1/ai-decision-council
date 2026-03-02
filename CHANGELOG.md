@@ -2,6 +2,46 @@
 
 All notable changes to `ai-decision-council` will be documented in this file.
 
+## [1.4.0] - 2026-03-09
+
+### Added
+
+- **Response caching layer**: In-memory and Redis-ready cache backends
+  - `InMemoryCache` — TTL-aware with configurable expiration
+  - `RedisCache` — Distributed cache backend
+  - `ResponseCache` — High-level wrapper for caching LLM responses
+  - `compute_cache_key()` — Deterministic SHA256-based key generation
+- **Cost tracking module**: Per-call and pipeline-level expense tracking
+  - `ModelMetrics` — Individual call metrics (duration, tokens, cost)
+  - `ExecutionMetrics` — Full pipeline breakdown with stage costs
+  - `MODEL_COSTS` — Pricing data for 12+ models (OpenAI, Anthropic, Google, Open Router, etc.)
+  - Cost calculations in USD with token multipliers
+- **Circuit breaker pattern**: Fault tolerance for provider failures
+  - `CircuitBreaker` — Automatic fail-fast with recovery backoff
+  - `CircuitState` — CLOSED / OPEN / HALF_OPEN state machine
+  - Configurable failure threshold (default 5) and recovery timeout (60s)
+- **Kubernetes deployment manifests** (`k8s-deployment.yaml`):
+  - 3-replica deployment with autoscaling (3-10 replicas)
+  - HorizontalPodAutoscaler (CPU/memory based)
+  - PodDisruptionBudget for reliability
+  - ServiceAccount, RBAC roles, and Secrets management
+  - Health checks with readiness/liveness probes
+- **Updated exports**: All new modules exposed in `__init__.py`
+
+### Changed
+
+- Removed Docker support (Dockerfile/docker-compose templates)
+  - Docker files removed from CLI scaffolding
+  - Documentation updated to focus on Kubernetes deployment
+  - Users should provide their own container images to registries
+- Updated deployment documentation with Kubernetes-first approach
+- Enhanced CI/CD example to focus on kubectl deployment
+
+### Fixed
+
+- CLI template cleanup (removed Docker-related bootstrapping)
+- Architecture documentation updated to reflect current module structure
+
 ## [1.3.0] - 2026-03-08
 
 ### Added
