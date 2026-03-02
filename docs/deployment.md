@@ -59,8 +59,8 @@ CMD ["ai-decision-council", "api", "serve", "--host", "0.0.0.0", "--port", "8001
 Build and push:
 
 ```bash
-docker build -t mycompany/ai-council:1.0.0 .
-docker push mycompany/ai-council:1.0.0
+docker build -t mycompany/ai-council:1.1.0 .
+docker push mycompany/ai-council:1.1.0
 ```
 
 ### 2. Kubernetes Manifest
@@ -106,7 +106,7 @@ spec:
     spec:
       containers:
         - name: council
-          image: mycompany/ai-council:1.0.0
+          image: mycompany/ai-council:1.1.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8001
@@ -158,7 +158,7 @@ spec:
       # Init container for DB migration (if using DB backend)
       initContainers:
         - name: migrate
-          image: mycompany/ai-council:1.0.0
+          image: mycompany/ai-council:1.1.0
           command: ["python", "-m", "ai_decision_council", "db", "migrate"]
           envFrom:
             - secretRef:
