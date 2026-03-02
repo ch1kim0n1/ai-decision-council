@@ -9,7 +9,7 @@ import os
 import secrets
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, cast
 
 from dotenv import load_dotenv
 
@@ -191,11 +191,13 @@ def cmd_api_serve(args: argparse.Namespace) -> int:
         return 1
 
     # Create a council factory that respects config file if provided
+    council_factory: Callable[[], Council] | None
     if hasattr(args, 'config') and args.config:
         from .config import CouncilConfig
-        def council_factory() -> Council:
+        def council_factory_impl() -> Council:
             config = CouncilConfig.from_file_and_env(args.config)
             return Council(config=config)
+        council_factory = council_factory_impl
     else:
         council_factory = None  # Use default
 
@@ -219,10 +221,10 @@ def cmd_api_openapi(args: argparse.Namespace) -> int:
     return 0 if success else 1
 
 
-def _detect_api_prefix(schema: dict) -> str:
+def _detect_api_prefix(schema: dict[str, Any]) -> str:
     for path in schema.get("paths", {}):
         if path.endswith("/conversations"):
-            return path[: -len("/conversations")]
+            return cast(str, path[: -len("/conversations")])
     return "/v1"
 
 
@@ -231,7 +233,8 @@ def _resolve_openapi_schema() -> dict[str, Any] | None:
     if create_app is None:
         return None
     app = create_app()
-    return app.openapi()
+    schema = app.openapi()
+    return cast(dict[str, Any] | None, schema)
 
 def cmd_api_sdk(args: argparse.Namespace) -> int:
     load_dotenv()

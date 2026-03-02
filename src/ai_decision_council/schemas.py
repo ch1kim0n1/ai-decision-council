@@ -35,12 +35,12 @@ class CouncilResult:
     @property
     def final_response(self) -> str:
         """Final synthesized response text."""
-        return self.stage3.get("response", "")
+        return str(self.stage3.get("response", ""))
 
     @property
     def final_model(self) -> str:
         """Model identifier that produced the final response."""
-        return self.stage3.get("model", "")
+        return str(self.stage3.get("model", ""))
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to serializable dictionary."""

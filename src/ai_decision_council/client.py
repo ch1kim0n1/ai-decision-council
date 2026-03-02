@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from .config import CouncilConfig
 from .council import run_full_council_with_runtime
@@ -131,22 +131,25 @@ class Council:
     async def ask(self, prompt: str) -> str:
         """Run pipeline and return only final synthesized response text."""
         result = await self.run(prompt)
-        return result.final_response
+        return str(result.final_response)
 
     def run_sync(self, prompt: str) -> CouncilResult:
         """Sync wrapper around `run` for non-async apps."""
-        return _run_sync_coro(self.run(prompt))
+        result = _run_sync_coro(self.run(prompt))
+        return cast(CouncilResult, result)
 
     def ask_sync(self, prompt: str) -> str:
         """Sync wrapper around `ask` for non-async apps."""
-        return _run_sync_coro(self.ask(prompt))
+        result = _run_sync_coro(self.ask(prompt))
+        return cast(str, result)
 
-    def metadata(self) -> Dict[str, Any]:
+    def metadata(self) -> dict[str, Any]:
         """Expose resolved runtime metadata for diagnostics and logging."""
-        return {
+        result: dict[str, Any] = {
             "provider": self.config.provider,
             "models": list(self.config.models or []),
             "chairman_model": self.config.chairman_model,
             "title_model": self.config.title_model,
             "max_retries": self.config.max_retries,
         }
+        return result

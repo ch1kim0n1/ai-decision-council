@@ -8,7 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, Request
@@ -114,7 +114,7 @@ class FileStorageBackend:
         if not path.exists():
             return None
         with path.open("r", encoding="utf-8") as handle:
-            return json.load(handle)
+            return cast(dict[str, Any], json.load(handle))
 
     def save_conversation(self, conversation: dict[str, Any]) -> None:
         normalized_id = _normalize_conversation_id(conversation["id"])

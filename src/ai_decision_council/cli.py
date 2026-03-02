@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from typing import Sequence
+from typing import Sequence, cast
 
 from ._cli_commands import (
     cmd_api_bootstrap,
@@ -196,4 +196,5 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    return args.func(args)
+    result = args.func(args)
+    return cast(int, result)

@@ -95,7 +95,7 @@ class RedisCache(CacheBackend[T]):
         if value is None:
             return None
         try:
-            return json.loads(value)  # type: ignore[return-value]
+            return json.loads(value)  # type: ignore[no-any-return]
         except (json.JSONDecodeError, TypeError):
             return None
 
@@ -107,7 +107,7 @@ class RedisCache(CacheBackend[T]):
                 self.client.setex(key, ttl_seconds, serialized)
             else:
                 self.client.set(key, serialized)
-        except (TypeError, json.JSONEncodeError):
+        except (TypeError, ValueError):
             pass  # Skip caching if not serializable
 
     def delete(self, key: str) -> None:

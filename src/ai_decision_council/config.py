@@ -3,7 +3,7 @@
 from dataclasses import dataclass, replace
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from dotenv import load_dotenv
 
@@ -262,7 +262,7 @@ class CouncilConfig:
         # Layer environment variables on top
         env_config = cls.from_env()
         # Only use env config where it was explicitly set (not default)
-        env_overrides = {}
+        env_overrides: dict[str, Any] = {}
         if os.getenv("LLM_COUNCIL_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY"):
             env_overrides["api_key"] = env_config.api_key
         if os.getenv("LLM_COUNCIL_API_URL"):
