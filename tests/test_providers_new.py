@@ -14,7 +14,6 @@ from ai_decision_council.providers.openai import OpenAIAdapter
 from ai_decision_council.providers.openrouter import OpenRouterAdapter
 from ai_decision_council.providers.base import (
     ProviderAuthError,
-    ProviderError,
     ProviderRateLimitError,
     ProviderResponse,
     ProviderTimeoutError,

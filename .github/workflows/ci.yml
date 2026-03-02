@@ -68,4 +68,4 @@ jobs:
 
       - name: Mypy type check
         run: mypy src/ai_decision_council --ignore-missing-imports --no-error-summary
-        continue-on-error: true   # advisory for now; flip to false when all stubs are present
+        continue-on-error: true # advisory for now; flip to false when all stubs are present

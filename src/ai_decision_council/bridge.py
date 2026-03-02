@@ -3,7 +3,7 @@
 from .client import Council
 from .config import CouncilConfig
 from .providers.base import ProviderAdapter
-from .schemas import CouncilResult, ModelRunError
+from .schemas import CouncilResult
 
 
 class CouncilBridge:

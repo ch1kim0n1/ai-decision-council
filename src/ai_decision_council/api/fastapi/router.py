@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-import time
 from typing import Any, Callable
 from uuid import UUID, uuid4
 
@@ -18,18 +16,15 @@ from ai_decision_council.council import (
     stage3_synthesize_final,
 )
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
-from .backends import AuthBackend, AuthContext, StorageBackend
+from .backends import StorageBackend
 from .helpers import (
     _acquire_request_budget,
     _assert_conversation_owner,
-    _client_ip,
     _current_owner_id,
-    _error_response,
     _make_envelope,
     _normalize_content,
-    _now_iso,
     _public_conversation,
     _sse_event,
 )

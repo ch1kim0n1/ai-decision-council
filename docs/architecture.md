@@ -226,12 +226,12 @@ This allows swapping providers without changing Stage 1/2/3 logic.
 
 ### 5. Supported Providers
 
-| Provider     | Env Key               | Default API URL                                 |
-| ------------ | --------------------- | ----------------------------------------------- |
-| `openrouter` | `OPENROUTER_API_KEY`  | `https://openrouter.ai/api/v1/chat/completions` |
-| `openai`     | `OPENAI_API_KEY`      | `https://api.openai.com/v1/chat/completions`    |
-| `anthropic`  | `ANTHROPIC_API_KEY`   | `https://api.anthropic.com/v1/messages`         |
-| `ollama`     | *(none required)*     | `http://localhost:11434/v1/chat/completions`     |
+| Provider     | Env Key              | Default API URL                                 |
+| ------------ | -------------------- | ----------------------------------------------- |
+| `openrouter` | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1/chat/completions` |
+| `openai`     | `OPENAI_API_KEY`     | `https://api.openai.com/v1/chat/completions`    |
+| `anthropic`  | `ANTHROPIC_API_KEY`  | `https://api.anthropic.com/v1/messages`         |
+| `ollama`     | _(none required)_    | `http://localhost:11434/v1/chat/completions`    |
 
 ### 6. Structured Observability
 

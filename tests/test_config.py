@@ -13,7 +13,7 @@ from ai_decision_council.config import (
     _env_int,
     _env_float,
 )
-from ai_decision_council.models import DEFAULT_MODEL_CATALOG, DEFAULT_MODEL_COUNT, MIN_MODELS, MAX_MODELS
+from ai_decision_council.models import DEFAULT_MODEL_COUNT, MIN_MODELS, MAX_MODELS
 
 
 # ---------------------------------------------------------------------------

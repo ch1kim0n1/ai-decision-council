@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any
+from datetime import datetime, timezone
 
 
 def _now_iso() -> str:

@@ -9,17 +9,15 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 import pytest
-from unittest.mock import AsyncMock, MagicMock, call
+from unittest.mock import MagicMock
 
 from ai_decision_council.client import Council
 from ai_decision_council.config import CouncilConfig
 from ai_decision_council.council import (
     run_full_council,
-    parse_ranking_from_text,
-    calculate_aggregate_rankings,
 )
 from ai_decision_council.providers.base import ProviderError, ProviderResponse
-from ai_decision_council.schemas import CouncilResult, ModelRunError
+from ai_decision_council.schemas import CouncilResult
 
 
 # ---------------------------------------------------------------------------

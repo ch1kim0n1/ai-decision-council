@@ -12,19 +12,8 @@ Configuration
 
 from __future__ import annotations
 
-from typing import Dict, List
 
-import httpx
 
-from .base import (
-    ProviderAuthError,
-    ProviderConfigError,
-    ProviderConnectionError,
-    ProviderRateLimitError,
-    ProviderResponse,
-    ProviderResponseError,
-    ProviderTimeoutError,
-)
 from .openrouter import OpenRouterAdapter
 
 

@@ -6,12 +6,16 @@ import time
 from typing import Any, Dict, List, Tuple
 
 from .config import CouncilConfig
+from .models import DEFAULT_MODEL_CATALOG
 from .observability import get_logger
 from .providers.base import ProviderAdapter, ProviderError
 from .providers.openrouter import OpenRouterAdapter
 from .schemas import ModelRunError
 
 _log = get_logger("council")
+
+# Fallback chairman model (first in default catalog, or openai/gpt-5.1)
+CHAIRMAN_MODEL = DEFAULT_MODEL_CATALOG[0] if DEFAULT_MODEL_CATALOG else "openai/gpt-5.1"
 
 
 def _index_to_label(index: int) -> str:

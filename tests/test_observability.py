@@ -116,8 +116,8 @@ class TestCouncilLoggerMethods:
             h.stream = self.stream
 
     def _get_records(self) -> list[dict]:
-        lines = [l.strip() for l in self.stream.getvalue().splitlines() if l.strip()]
-        return [json.loads(l) for l in lines]
+        lines = [line.strip() for line in self.stream.getvalue().splitlines() if line.strip()]
+        return [json.loads(line) for line in lines]
 
     def test_info_emits_record(self):
         log = get_logger("test.info")
@@ -195,8 +195,8 @@ class TestTimedStage:
         with timed_stage(log, "stage1", foo="bar"):
             pass
 
-        lines = [l for l in stream.getvalue().splitlines() if l.strip()]
-        records = [json.loads(l) for l in lines]
+        lines = [line for line in stream.getvalue().splitlines() if line.strip()]
+        records = [json.loads(line) for line in lines]
         stages = [r.get("stage") for r in records]
         assert "stage1" in stages
 
@@ -213,8 +213,8 @@ class TestTimedStage:
             with timed_stage(log, "stage3"):
                 raise ValueError("boom")
 
-        lines = [l for l in stream.getvalue().splitlines() if l.strip()]
-        records = [json.loads(l) for l in lines]
+        lines = [line for line in stream.getvalue().splitlines() if line.strip()]
+        records = [json.loads(line) for line in lines]
         levels = [r.get("level") for r in records]
         assert "ERROR" in levels
 
@@ -230,8 +230,8 @@ class TestTimedStage:
         with timed_stage(log, "stage2"):
             time.sleep(0.01)
 
-        lines = [l for l in stream.getvalue().splitlines() if l.strip()]
-        records = [json.loads(l) for l in lines]
+        lines = [line for line in stream.getvalue().splitlines() if line.strip()]
+        records = [json.loads(line) for line in lines]
         # The complete record should have duration_ms
         complete_recs = [r for r in records if "duration_ms" in r]
         assert complete_recs, "Expected a record with duration_ms"

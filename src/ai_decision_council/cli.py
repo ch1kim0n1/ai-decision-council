@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from typing import Sequence
 
 from ._cli_commands import (
