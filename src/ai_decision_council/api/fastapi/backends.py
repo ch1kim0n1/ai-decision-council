@@ -99,7 +99,7 @@ class FileStorageBackend:
         owner_id: str | None = None,
     ) -> dict[str, Any]:
         normalized_id = _normalize_conversation_id(conversation_id)
-        conversation = {
+        conversation: dict[str, Any] = {
             "id": normalized_id,
             "owner_id": owner_id,
             "created_at": _utc_now_iso(),

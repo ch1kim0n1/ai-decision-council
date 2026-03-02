@@ -2,6 +2,7 @@
 
 from .client import Council
 from .config import CouncilConfig, SUPPORTED_PROVIDERS
+from .config_loader import load_config_file, merge_config_sources, normalize_config_keys
 from .observability import configure_logging, get_logger
 from .schemas import CouncilResult, ModelRunError
 from .council import (
@@ -50,6 +51,10 @@ __all__ = [
     "CouncilResult",
     "ModelRunError",
     "SUPPORTED_PROVIDERS",
+    # Configuration file support
+    "load_config_file",
+    "merge_config_sources",
+    "normalize_config_keys",
     # Observability
     "configure_logging",
     "get_logger",

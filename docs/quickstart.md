@@ -151,6 +151,76 @@ print(council.run_sync("What are the tradeoffs of microservices?").final_respons
 
 ---
 
+## Configuration via File
+
+Instead of environment variables, you can use a configuration file in TOML or YAML format.
+
+### TOML Format
+
+Create `council.toml`:
+
+```toml
+[ai-decision-council]
+api_key = "your-api-key"
+provider = "openai"
+models = ["gpt-4o", "gpt-4o-mini", "o1-mini"]
+model_count = 3
+max_retries = 2
+stage_timeout_seconds = 120.0
+title_timeout_seconds = 30.0
+```
+
+Then load it in the CLI:
+
+```bash
+ai-decision-council run --prompt "Your prompt" --config council.toml
+ai-decision-council api serve --config council.toml
+```
+
+Or in Python:
+
+```python
+from ai_decision_council import Council
+from ai_decision_council.config import CouncilConfig
+
+config = CouncilConfig.from_file_and_env("council.toml")
+council = Council(config=config)
+```
+
+### YAML Format
+
+Create `council.yaml`:
+
+```yaml
+api_key: your-api-key
+provider: openai
+models:
+  - gpt-4o
+  - gpt-4o-mini
+  - o1-mini
+model_count: 3
+max_retries: 2
+stage_timeout_seconds: 120.0
+```
+
+Load the same way:
+
+```bash
+ai-decision-council run --prompt "Your prompt" --config council.yaml
+```
+
+### Precedence
+
+When using `CouncilConfig.from_file_and_env()`, configuration is layered as follows (highest to lowest priority):
+
+1. Environment variables (e.g., `LLM_COUNCIL_API_KEY`)
+2. Values from config file (TOML/YAML)
+3. Defaults in the code
+
+This allows you to use a config file for most settings while overriding specific values via environment variables.
+
+---
+
 ## Enabling Structured Logging
 
 ```bash

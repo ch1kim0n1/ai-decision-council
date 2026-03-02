@@ -146,7 +146,13 @@ def cmd_run(args: argparse.Namespace) -> int:
     load_dotenv()
 
     try:
-        council = Council.from_env()
+        if hasattr(args, 'config') and args.config:
+            # Load config from file, with environment variable precedence
+            from .config import CouncilConfig
+            config = CouncilConfig.from_file_and_env(args.config)
+            council = Council(config=config)
+        else:
+            council = Council.from_env()
     except ValueError as exc:
         print(f"Configuration invalid: {exc}", file=sys.stderr)
         return 1
@@ -196,7 +202,16 @@ def cmd_api_serve(args: argparse.Namespace) -> int:
         print(f"Unable to import uvicorn: {exc}", file=sys.stderr)
         return 1
 
-    app = create_app()
+    # Create a council factory that respects config file if provided
+    if hasattr(args, 'config') and args.config:
+        from .config import CouncilConfig
+        def council_factory() -> Council:
+            config = CouncilConfig.from_file_and_env(args.config)
+            return Council(config=config)
+    else:
+        council_factory = None  # Use default
+
+    app = create_app(council_factory=council_factory)
     uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
     return 0
 

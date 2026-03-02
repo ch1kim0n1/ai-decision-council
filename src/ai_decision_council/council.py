@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 from .config import CouncilConfig
 from .models import DEFAULT_MODEL_CATALOG
@@ -360,11 +360,13 @@ async def stage3_synthesize_final(
     """Stage 3 public API (backward-compatible return shape)."""
     config = (config or CouncilConfig.from_env()).with_resolved_defaults()
     adapter = adapter or _default_adapter(config)
+    # chairman_model is guaranteed non-None after with_resolved_defaults()
+    chairman_model_str: str = config.chairman_model or CHAIRMAN_MODEL
     stage3_result, _ = await _stage3_synthesize_final_internal(
         user_query=user_query,
         stage1_results=stage1_results,
         stage2_results=stage2_results,
-        chairman_model=config.chairman_model,
+        chairman_model=chairman_model_str,
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
     )
@@ -420,7 +422,7 @@ def calculate_aggregate_rankings(
                 }
             )
 
-    aggregate.sort(key=lambda x: x["average_rank"])
+    aggregate.sort(key=lambda x: cast(float, x["average_rank"]))
     return aggregate
 
 
@@ -432,9 +434,11 @@ async def generate_conversation_title(
     """Generate a short conversation title."""
     config = (config or CouncilConfig.from_env()).with_resolved_defaults()
     adapter = adapter or _default_adapter(config)
+    # title_model is guaranteed non-None after with_resolved_defaults()
+    title_model_str: str = config.title_model or CHAIRMAN_MODEL
     title, _ = await _generate_conversation_title_internal(
         user_query=user_query,
-        title_model=config.title_model,
+        title_model=title_model_str,
         adapter=adapter,
         timeout=config.title_timeout_seconds,
     )
@@ -462,7 +466,7 @@ async def run_full_council_with_runtime(
     errors.extend(stage1_errors)
 
     if not stage1_results:
-        metadata = {
+        error_metadata: dict[str, Any] = {
             "label_to_model": {},
             "aggregate_rankings": [],
             "errors": [error.to_dict() for error in errors],
@@ -474,7 +478,7 @@ async def run_full_council_with_runtime(
                 "model": "error",
                 "response": "All models failed to respond. Please try again.",
             },
-            metadata,
+            error_metadata,
         )
 
     _log.stage_start("stage2", ranked_responses=len(stage1_results))
@@ -506,7 +510,7 @@ async def run_full_council_with_runtime(
                         errors=len(stage3_errors))
     errors.extend(stage3_errors)
 
-    metadata = {
+    metadata: dict[str, Any] = {
         "label_to_model": label_to_model,
         "aggregate_rankings": aggregate_rankings,
         "errors": [error.to_dict() for error in errors],

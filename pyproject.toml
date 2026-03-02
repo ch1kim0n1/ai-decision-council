@@ -1,6 +1,6 @@
 [project]
 name = "ai-decision-council"
-version = "1.2.1"
+version = "1.3.0"
 description = "Multi-model council orchestration with CLI and integration bridge"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -34,9 +34,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/pomoika/hackai26-pre-code"
-Repository = "https://github.com/pomoika/hackai26-pre-code"
-Issues = "https://github.com/pomoika/hackai26-pre-code/issues"
+Homepage = "https://github.com/pomoika/ai-decision-council"
+Repository = "https://github.com/pomoika/ai-decision-council"
+Issues = "https://github.com/pomoika/ai-decision-council/issues"
 
 [project.scripts]
 ai-decision-council = "ai_decision_council.cli:main"
@@ -49,6 +49,10 @@ dev = [
     "httpx>=0.27.0",
     "fastapi>=0.115.0",
     "pydantic>=2.9.0",
+    "tomli>=2.0.0;python_version<'3.11'",
+    "pyyaml>=6.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
 ]
 api = [
     "fastapi>=0.115.0",
@@ -91,3 +95,22 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I001"]
+
+

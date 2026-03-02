@@ -22,7 +22,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Generator
+from typing import Any, Generator, cast
 
 
 _LOGGER_NAME = "ai_decision_council"
@@ -85,7 +85,8 @@ def configure_logging(
     if _configured:
         return
 
-    _log_level = level or os.getenv("LLM_COUNCIL_LOG_LEVEL", "INFO")
+    # Ensure _log_level is always a string (cast explicitly for type safety)
+    _log_level: str | int = cast(str | int, level or os.getenv("LLM_COUNCIL_LOG_LEVEL", "INFO"))
     _json_mode = json_mode
     if _json_mode is None:
         _json_mode = os.getenv("LLM_COUNCIL_LOG_JSON", "0").lower() in ("1", "true", "yes")

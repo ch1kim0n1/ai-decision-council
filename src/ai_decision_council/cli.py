@@ -96,6 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Prompt to send through the council.",
     )
     run_parser.add_argument(
+        "--config",
+        "-c",
+        help="Path to configuration file (TOML or YAML format).",
+    )
+    run_parser.add_argument(
         "--json",
         action="store_true",
         help="Print full structured output as JSON.",
@@ -154,6 +159,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--host", default="0.0.0.0")
     serve_parser.add_argument("--port", type=int, default=8001)
     serve_parser.add_argument("--reload", action="store_true")
+    serve_parser.add_argument(
+        "--config",
+        "-c",
+        help="Path to configuration file (TOML or YAML format).",
+    )
     serve_parser.set_defaults(func=cmd_api_serve)
 
     openapi_parser = api_subparsers.add_parser(
