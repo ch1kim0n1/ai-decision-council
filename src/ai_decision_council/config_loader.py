@@ -141,13 +141,15 @@ def merge_config_sources(
 def normalize_config_keys(config: dict[str, Any]) -> dict[str, Any]:
     """Normalize configuration keys to environment variable format.
 
-    Converts underscore-separated keys to uppercase environment variable names.
+    Converts known lowercase config keys to their ``LLM_COUNCIL_``-prefixed
+    environment variable names. Unrecognized keys are passed through unchanged
+    (they are assumed to already be in env-var form).
 
     Examples:
-        api_key -> API_KEY
-        model_count -> MODEL_COUNT
-        models -> MODELS
-        provider -> PROVIDER
+        api_key -> LLM_COUNCIL_API_KEY
+        model_count -> LLM_COUNCIL_MODEL_COUNT
+        models -> LLM_COUNCIL_MODELS
+        provider -> LLM_COUNCIL_PROVIDER
 
     Parameters
     ----------

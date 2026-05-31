@@ -69,7 +69,10 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
         print(f"Configuration invalid: {exc}", file=sys.stderr)
         return 1
 
+    from . import __version__
+
     print("AI Decision Council doctor report")
+    print(f"- Version: {__version__}")
     print(f"- API key configured: {'yes' if bool(config.api_key) else 'no'}")
     print(f"- Provider: {config.provider}")
     print(f"- Models configured: {len(config.models or [])}")

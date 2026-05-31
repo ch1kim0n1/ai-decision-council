@@ -18,8 +18,9 @@ from .openrouter import OpenRouterAdapter
 class OpenAIAdapter(OpenRouterAdapter):
     """Provider adapter for the direct OpenAI Chat Completions API.
 
-    The wire format is identical to OpenRouter, so we inherit the full
-    implementation and only change the default base URL and auth header.
+    The wire format and auth header (``Authorization: Bearer``) are identical
+    to OpenRouter, so we inherit the full ``chat`` implementation unchanged and
+    only override the default base URL.
     """
 
     DEFAULT_API_URL = "https://api.openai.com/v1/chat/completions"

@@ -1,5 +1,12 @@
 """Reusable ai-decision-council core library."""
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("ai-decision-council")
+except PackageNotFoundError:  # pragma: no cover - only when running from a non-installed tree
+    __version__ = "0.0.0"
+
 from .cache import InMemoryCache, ResponseCache, compute_cache_key
 from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenError, CircuitState
 from .client import Council
@@ -48,6 +55,8 @@ def create_fastapi_router(*args, **kwargs):
 
 
 __all__ = [
+    # Version
+    "__version__",
     # Core
     "Council",
     "CouncilConfig",
