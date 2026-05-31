@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Awaitable
 from enum import Enum
 from typing import Any, Callable, TypeVar
 
@@ -90,6 +91,53 @@ class CircuitBreaker:
 
         try:
             result = func(*args, **kwargs)
+            self._on_success()
+            return result
+        except self.expected_exception:
+            self._on_failure()
+            raise
+
+    async def call_async(
+        self,
+        func: Callable[..., Awaitable[T]],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """Execute an async function within circuit breaker protection.
+
+        Mirrors :meth:`call` but awaits the coroutine returned by ``func``.
+
+        Parameters
+        ----------
+        func : Callable[..., Awaitable[T]]
+            Coroutine function to execute.
+        *args : Any
+            Positional arguments to pass to func.
+        **kwargs : Any
+            Keyword arguments to pass to func.
+
+        Returns
+        -------
+        T
+            Awaited return value of func.
+
+        Raises
+        ------
+        CircuitBreakerOpenError
+            If circuit is open and won't allow the call.
+        """
+        if self.is_open:
+            if self._should_attempt_reset():
+                self.state = CircuitState.HALF_OPEN
+                self.success_count = 0
+            else:
+                raise CircuitBreakerOpenError(
+                    f"Circuit is open. Will retry in "
+                    f"{self.recovery_timeout_seconds}s"
+                )
+
+        try:
+            result = await func(*args, **kwargs)
             self._on_success()
             return result
         except self.expected_exception:

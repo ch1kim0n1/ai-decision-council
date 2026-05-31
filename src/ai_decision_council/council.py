@@ -5,7 +5,10 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Tuple, cast
 
+from .cache import ResponseCache, compute_cache_key
+from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 from .config import CouncilConfig
+from .metrics import ExecutionMetrics, ModelMetrics
 from .models import DEFAULT_MODEL_CATALOG
 from .observability import get_logger
 from .providers.base import ProviderAdapter, ProviderError
@@ -13,6 +16,38 @@ from .providers.openrouter import OpenRouterAdapter
 from .schemas import ModelRunError
 
 _log = get_logger("council")
+
+
+def _extract_usage(raw: Dict[str, Any] | None) -> Tuple[int | None, int | None]:
+    """Extract (input_tokens, output_tokens) from a provider's raw response.
+
+    Supports both the OpenAI/OpenRouter usage shape
+    (``prompt_tokens``/``completion_tokens``) and the Anthropic shape
+    (``input_tokens``/``output_tokens``). Returns ``(None, None)`` when no
+    usage data is present.
+    """
+    if not isinstance(raw, dict):
+        return None, None
+    usage = raw.get("usage")
+    if not isinstance(usage, dict):
+        return None, None
+
+    def _as_int(value: Any) -> int | None:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        return None
+
+    input_tokens = _as_int(usage.get("prompt_tokens"))
+    if input_tokens is None:
+        input_tokens = _as_int(usage.get("input_tokens"))
+    output_tokens = _as_int(usage.get("completion_tokens"))
+    if output_tokens is None:
+        output_tokens = _as_int(usage.get("output_tokens"))
+    return input_tokens, output_tokens
 
 # Fallback chairman model (first in default catalog, or openai/gpt-5.1)
 CHAIRMAN_MODEL = DEFAULT_MODEL_CATALOG[0] if DEFAULT_MODEL_CATALOG else "openai/gpt-5.1"
@@ -57,13 +92,28 @@ async def _chat_single_model(
     messages: List[Dict[str, str]],
     timeout: float,
     stage: str,
+    breaker: CircuitBreaker | None = None,
+    metrics_sink: List[ModelMetrics] | None = None,
 ) -> Tuple[str, Dict[str, Any] | None, ModelRunError | None]:
     _log.model_call_start(model=model, stage=stage)
     t0 = time.perf_counter()
+    metric = ModelMetrics(model=model, start_time=time.time())
     try:
-        response = await adapter.chat(model=model, messages=messages, timeout=timeout)
+        if breaker is not None:
+            response = await breaker.call_async(
+                adapter.chat, model=model, messages=messages, timeout=timeout
+            )
+        else:
+            response = await adapter.chat(model=model, messages=messages, timeout=timeout)
         elapsed_ms = (time.perf_counter() - t0) * 1000
         _log.model_call_complete(model=model, stage=stage, duration_ms=elapsed_ms)
+        input_tokens, output_tokens = _extract_usage(response.raw)
+        metric.end_time = time.time()
+        metric.input_tokens = input_tokens
+        metric.output_tokens = output_tokens
+        metric.status = "success"
+        if metrics_sink is not None:
+            metrics_sink.append(metric)
         return (
             model,
             {
@@ -72,9 +122,34 @@ async def _chat_single_model(
             },
             None,
         )
+    except CircuitBreakerOpenError as exc:
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        _log.model_call_error(
+            model=model, stage=stage, error_code="circuit_open", message=str(exc)
+        )
+        metric.end_time = time.time()
+        metric.status = "error"
+        metric.error_message = str(exc)
+        if metrics_sink is not None:
+            metrics_sink.append(metric)
+        return (
+            model,
+            None,
+            ModelRunError(
+                model=model,
+                stage=stage,
+                error_code="circuit_open",
+                message=str(exc),
+            ),
+        )
     except ProviderError as exc:
         elapsed_ms = (time.perf_counter() - t0) * 1000
         _log.model_call_error(model=model, stage=stage, error_code=exc.code, message=str(exc))
+        metric.end_time = time.time()
+        metric.status = "error"
+        metric.error_message = str(exc)
+        if metrics_sink is not None:
+            metrics_sink.append(metric)
         return (
             model,
             None,
@@ -90,6 +165,11 @@ async def _chat_single_model(
         _log.model_call_error(
             model=model, stage=stage, error_code="unexpected_error", message=str(exc)
         )
+        metric.end_time = time.time()
+        metric.status = "error"
+        metric.error_message = str(exc)
+        if metrics_sink is not None:
+            metrics_sink.append(metric)
         return (
             model,
             None,
@@ -108,6 +188,8 @@ async def _chat_models_parallel(
     messages: List[Dict[str, str]],
     timeout: float,
     stage: str,
+    breaker: CircuitBreaker | None = None,
+    metrics_sink: List[ModelMetrics] | None = None,
 ) -> Tuple[Dict[str, Dict[str, Any]], List[ModelRunError]]:
     import asyncio
 
@@ -118,6 +200,8 @@ async def _chat_models_parallel(
             messages=messages,
             timeout=timeout,
             stage=stage,
+            breaker=breaker,
+            metrics_sink=metrics_sink,
         )
         for model in models
     ]
@@ -138,6 +222,8 @@ async def _stage1_collect_responses_internal(
     models: List[str],
     adapter: ProviderAdapter,
     timeout: float,
+    breaker: CircuitBreaker | None = None,
+    metrics_sink: List[ModelMetrics] | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[ModelRunError]]:
     messages = [{"role": "user", "content": user_query}]
     responses, errors = await _chat_models_parallel(
@@ -146,6 +232,8 @@ async def _stage1_collect_responses_internal(
         messages=messages,
         timeout=timeout,
         stage="stage1",
+        breaker=breaker,
+        metrics_sink=metrics_sink,
     )
 
     stage1_results = [
@@ -161,6 +249,8 @@ async def _stage2_collect_rankings_internal(
     models: List[str],
     adapter: ProviderAdapter,
     timeout: float,
+    breaker: CircuitBreaker | None = None,
+    metrics_sink: List[ModelMetrics] | None = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, str], List[ModelRunError]]:
     labels = [_index_to_label(i) for i in range(len(stage1_results))]
     label_to_model = {
@@ -214,6 +304,8 @@ Now provide your evaluation and ranking:"""
         messages=messages,
         timeout=timeout,
         stage="stage2",
+        breaker=breaker,
+        metrics_sink=metrics_sink,
     )
 
     stage2_results = []
@@ -238,6 +330,8 @@ async def _stage3_synthesize_final_internal(
     chairman_model: str,
     adapter: ProviderAdapter,
     timeout: float,
+    breaker: CircuitBreaker | None = None,
+    metrics_sink: List[ModelMetrics] | None = None,
 ) -> Tuple[Dict[str, Any], List[ModelRunError]]:
     stage1_text = "\n\n".join(
         [
@@ -274,6 +368,8 @@ Provide a clear, well-reasoned final answer that represents the council's collec
         messages=[{"role": "user", "content": chairman_prompt}],
         timeout=timeout,
         stage="stage3",
+        breaker=breaker,
+        metrics_sink=metrics_sink,
     )
 
     if response is None:
@@ -455,31 +551,78 @@ async def run_full_council_with_runtime(
     user_query: str,
     config: CouncilConfig,
     adapter: ProviderAdapter,
+    cache: ResponseCache | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
-    """Run the full pipeline using explicit runtime configuration and adapter."""
+    """Run the full pipeline using explicit runtime configuration and adapter.
+
+    Parameters
+    ----------
+    cache : ResponseCache | None
+        Optional response cache. When provided and enabled, an identical
+        ``(query, models, provider, chairman_model)`` request short-circuits to
+        the cached pipeline result instead of re-querying providers.
+    circuit_breaker : CircuitBreaker | None
+        Optional circuit breaker. When provided, every provider ``chat`` call is
+        guarded by it so a persistently failing provider trips the breaker and
+        subsequent calls fail fast.
+    """
+    models = list(config.models or [])
+
+    cache_key: str | None = None
+    if cache is not None and cache.enabled:
+        cache_key = compute_cache_key(
+            query=user_query,
+            models=models,
+            provider=config.provider,
+            additional_params={
+                "chairman_model": config.chairman_model,
+                "api_url": config.api_url,
+            },
+        )
+        cached = cache.get(cache_key)
+        if cached is not None:
+            stage1_c, stage2_c, stage3_c, metadata_c = cached
+            metadata_c = dict(metadata_c)
+            metadata_c["cached"] = True
+            _log.info("council_cache_hit", cache_key=cache_key)
+            return stage1_c, stage2_c, stage3_c, metadata_c
+
+    exec_metrics = ExecutionMetrics(
+        query=user_query,
+        provider=config.provider,
+        models=models,
+        start_time=time.time(),
+        cache_key=cache_key,
+    )
+
     errors: List[ModelRunError] = []
 
     _log.stage_start(
         "stage1",
-        model_count=len(list(config.models or [])),
+        model_count=len(models),
         query_len=len(user_query),
     )
     t_stage1 = time.perf_counter()
     stage1_results, stage1_errors = await _stage1_collect_responses_internal(
         user_query=user_query,
-        models=list(config.models or []),
+        models=models,
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
+        breaker=circuit_breaker,
+        metrics_sink=exec_metrics.stage1_metrics,
     )
     _log.stage_complete("stage1", (time.perf_counter() - t_stage1) * 1000,
                         results=len(stage1_results), errors=len(stage1_errors))
     errors.extend(stage1_errors)
 
     if not stage1_results:
+        exec_metrics.end_time = time.time()
         error_metadata: dict[str, Any] = {
             "label_to_model": {},
             "aggregate_rankings": [],
             "errors": [error.to_dict() for error in errors],
+            "metrics": exec_metrics.to_dict(),
         }
         return (
             [],
@@ -496,9 +639,11 @@ async def run_full_council_with_runtime(
     stage2_results, label_to_model, stage2_errors = await _stage2_collect_rankings_internal(
         user_query=user_query,
         stage1_results=stage1_results,
-        models=list(config.models or []),
+        models=models,
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
+        breaker=circuit_breaker,
+        metrics_sink=exec_metrics.stage2_metrics,
     )
     _log.stage_complete("stage2", (time.perf_counter() - t_stage2) * 1000,
                         rankings=len(stage2_results), errors=len(stage2_errors))
@@ -515,16 +660,25 @@ async def run_full_council_with_runtime(
         chairman_model=config.chairman_model or CHAIRMAN_MODEL,
         adapter=adapter,
         timeout=config.stage_timeout_seconds,
+        breaker=circuit_breaker,
+        metrics_sink=exec_metrics.stage3_metrics,
     )
     _log.stage_complete("stage3", (time.perf_counter() - t_stage3) * 1000,
                         errors=len(stage3_errors))
     errors.extend(stage3_errors)
 
+    exec_metrics.end_time = time.time()
+
     metadata: dict[str, Any] = {
         "label_to_model": label_to_model,
         "aggregate_rankings": aggregate_rankings,
         "errors": [error.to_dict() for error in errors],
+        "metrics": exec_metrics.to_dict(),
+        "cached": False,
     }
+
+    if cache is not None and cache.enabled and cache_key is not None:
+        cache.set(cache_key, (stage1_results, stage2_results, stage3_result, metadata))
 
     return stage1_results, stage2_results, stage3_result, metadata
 
@@ -533,6 +687,8 @@ async def run_full_council(
     user_query: str,
     config: CouncilConfig | None = None,
     adapter: ProviderAdapter | None = None,
+    cache: ResponseCache | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
 ) -> Tuple[List, List, Dict, Dict]:
     """
     Run the complete 3-stage council process.
@@ -546,4 +702,6 @@ async def run_full_council(
         user_query=user_query,
         config=config,
         adapter=adapter,
+        cache=cache,
+        circuit_breaker=circuit_breaker,
     )

@@ -2,6 +2,36 @@
 
 All notable changes to `ai-decision-council` will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- `ai_decision_council.__version__`, single-sourced from installed package metadata.
+- `CircuitBreaker.call_async()` to guard `async` provider calls.
+- Per-execution cost/token metrics surfaced in `CouncilResult.metadata["metrics"]`
+  when the provider returns usage data.
+
+### Changed
+
+- **Production features are now actually wired into the pipeline.** The
+  response cache, cost/token metrics, and circuit breaker introduced in 1.4.0
+  were previously defined but never invoked. They are now integrated:
+  - `Council` runs are guarded by a `CircuitBreaker` by default (pass
+    `circuit_breaker=False` to disable, or supply your own).
+  - Pass a `ResponseCache` to `Council(cache=...)` to short-circuit identical
+    repeated runs.
+  - `CouncilResult.metadata["metrics"]` reports per-stage token counts and USD
+    cost when the provider returns `usage`.
+
+### Fixed
+
+- `tomli` is now a runtime dependency on Python < 3.11, so `from_file()` TOML
+  config loading works on a base install (previously crashed on Python 3.10).
+- Bearer-token auth now uses constant-time digest comparison
+  (`hmac.compare_digest`), removing a timing side channel.
+- Corrected `OpenAIAdapter` and `normalize_config_keys` docstrings to match
+  their implementations.
+
 ## [1.4.0] - 2025-03-09
 
 ### Added

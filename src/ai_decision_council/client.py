@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 from typing import Any, cast
 
+from .cache import ResponseCache
+from .circuit_breaker import CircuitBreaker
 from .config import CouncilConfig
 from .council import run_full_council_with_runtime
 from .observability import configure_logging, get_logger
-from .providers.base import ProviderAdapter
+from .providers.base import ProviderAdapter, ProviderError
 from .providers.openrouter import OpenRouterAdapter
 from .schemas import CouncilResult, ModelRunError
 
@@ -35,6 +37,8 @@ class Council:
         self,
         config: CouncilConfig | None = None,
         provider_adapter: ProviderAdapter | None = None,
+        cache: ResponseCache | None = None,
+        circuit_breaker: CircuitBreaker | bool | None = None,
     ):
         resolved_config = (config or CouncilConfig.from_env()).with_resolved_defaults()
         self.config = resolved_config
@@ -43,6 +47,19 @@ class Council:
             self.provider_adapter = provider_adapter
         else:
             self.provider_adapter = self._build_adapter(resolved_config)
+
+        # Optional response cache (opt-in; disabled unless a cache is supplied).
+        self.cache = cache
+        # Circuit breaker guards provider calls so a persistently failing
+        # provider trips the breaker and fails fast. A default breaker is
+        # created when not supplied; pass ``circuit_breaker=False`` to disable.
+        self.circuit_breaker: CircuitBreaker | None
+        if circuit_breaker is False:
+            self.circuit_breaker = None
+        elif circuit_breaker is None or circuit_breaker is True:
+            self.circuit_breaker = CircuitBreaker(expected_exception=ProviderError)
+        else:
+            self.circuit_breaker = circuit_breaker
 
     @staticmethod
     def _build_adapter(config: CouncilConfig) -> ProviderAdapter:
@@ -103,6 +120,8 @@ class Council:
             user_query=prompt,
             config=self.config,
             adapter=self.provider_adapter,
+            cache=self.cache,
+            circuit_breaker=self.circuit_breaker,
         )
 
         raw_errors = metadata.get("errors", [])
