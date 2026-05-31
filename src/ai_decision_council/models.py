@@ -3,11 +3,11 @@
 from typing import List
 
 DEFAULT_MODEL_CATALOG: List[str] = [
-    "openai/gpt-5.1",
-    "anthropic/claude-sonnet-4.5",
-    "google/gemini-3-pro-preview",
-    "x-ai/grok-4",
-    "deepseek/deepseek-r1",
+    "openai/gpt-4o",
+    "anthropic/claude-3-5-sonnet",
+    "google/gemini-flash-1.5",
+    "meta-llama/llama-3-70b-instruct",
+    "mistralai/mistral-large",
 ]
 
 DEFAULT_MODEL_COUNT = 5

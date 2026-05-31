@@ -1,0 +1,7 @@
+include README.md
+include CHANGELOG.md
+include LICENSE
+include .env.example
+recursive-include docs *.md *.json
+recursive-include src *.py *.pyi
+include src/ai_decision_council/py.typed

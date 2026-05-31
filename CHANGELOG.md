@@ -2,7 +2,7 @@
 
 All notable changes to `ai-decision-council` will be documented in this file.
 
-## [1.4.0] - 2026-03-09
+## [1.4.0] - 2025-03-09
 
 ### Added
 
@@ -42,7 +42,7 @@ All notable changes to `ai-decision-council` will be documented in this file.
 - CLI template cleanup (removed Docker-related bootstrapping)
 - Architecture documentation updated to reflect current module structure
 
-## [1.3.0] - 2026-03-08
+## [1.3.0] - 2025-03-08
 
 ### Added
 
@@ -67,7 +67,7 @@ All notable changes to `ai-decision-council` will be documented in this file.
 - Removed unused `type: ignore` comments
 - Better type safety for configuration loading functions
 
-## [1.2.1] - 2026-03-07
+## [1.2.1] - 2025-03-07
 
 ### Fixed
 
@@ -75,7 +75,7 @@ All notable changes to `ai-decision-council` will be documented in this file.
 - Fixed undefined variable warnings in `council.py`
 - Renamed ambiguous variable names (e.g., `l` → `line`) in test_observability.py
 
-## [1.0.0] - 2026-03-01
+## [1.0.0] - 2025-03-01
 
 ### Added
 

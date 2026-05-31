@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -109,8 +112,8 @@ class RedisCache(CacheBackend[T]):
                 self.client.setex(key, ttl_seconds, serialized)
             else:
                 self.client.set(key, serialized)
-        except (TypeError, ValueError):
-            pass  # Skip caching if not serializable
+        except (TypeError, ValueError) as e:
+            logger.warning("Failed to cache key %s: %s", key, e)
 
     def delete(self, key: str) -> None:
         """Delete key from Redis."""

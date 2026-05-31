@@ -1,5 +1,7 @@
 """Compatibility bridge wrapper over the canonical `Council` client."""
 
+import warnings
+
 from .client import Council
 from .config import CouncilConfig
 from .providers.base import ProviderAdapter
@@ -14,6 +16,12 @@ class CouncilBridge:
         config: CouncilConfig | None = None,
         provider_adapter: ProviderAdapter | None = None,
     ):
+        warnings.warn(
+            "CouncilBridge is deprecated and will be removed in a future version. "
+            "Use Council directly instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._client = Council(config=config, provider_adapter=provider_adapter)
 
     async def run(self, prompt: str) -> CouncilResult:

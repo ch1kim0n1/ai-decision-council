@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -121,8 +122,11 @@ class FileStorageBackend:
         payload = dict(conversation)
         payload["id"] = normalized_id
         path = self.get_conversation_path(normalized_id)
-        with path.open("w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2)
+        # Write to temp file first, then rename atomically
+        with tempfile.NamedTemporaryFile(mode='w', dir=os.path.dirname(path), suffix='.tmp', delete=False) as tmp:
+            json.dump(payload, tmp, indent=2)
+            tmp_path = tmp.name
+        os.replace(tmp_path, path)
 
     def list_conversations(self, owner_id: str | None = None) -> list[dict[str, Any]]:
         base_dir = self.ensure_data_dir()
@@ -241,15 +245,12 @@ class StaticTokenAuthBackend:
         scheme, _, token = auth_header.partition(" ")
         if scheme.lower() != "bearer":
             return None
-        normalized = token.strip()
-        return normalized or None
-
-    @staticmethod
-    def _owner_id_from_token(token: str) -> str:
-        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
-        return digest[:32]
+        return token.strip() or None
 
     @staticmethod
     def _fingerprint(token: str) -> str:
-        digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
-        return digest[:12]
+        return hashlib.sha256(token.encode()).hexdigest()[:16]
+
+    @staticmethod
+    def _owner_id_from_token(token: str) -> str:
+        return hashlib.sha256(token.encode()).hexdigest()[:12]
