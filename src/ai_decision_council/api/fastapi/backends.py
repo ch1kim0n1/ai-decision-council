@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import tempfile
@@ -210,6 +211,28 @@ class StaticTokenAuthBackend:
 
     def __init__(self, tokens: set[str]):
         self._tokens = tokens
+        # Pre-compute fixed-length SHA256 digests so comparison is both
+        # constant-time and independent of token length.
+        self._token_digests = [self._digest(token) for token in tokens]
+
+    @staticmethod
+    def _digest(token: str) -> bytes:
+        return hashlib.sha256(token.encode()).digest()
+
+    def _is_valid(self, token: str) -> bool:
+        """Constant-time membership check against configured tokens.
+
+        Compares fixed-length SHA256 digests with ``hmac.compare_digest`` to
+        avoid both data-dependent early exit and token-length leakage.  All
+        configured digests are checked (no short-circuit on first match) so the
+        timing does not reveal which token matched.
+        """
+        candidate = self._digest(token)
+        matched = False
+        for digest in self._token_digests:
+            if hmac.compare_digest(candidate, digest):
+                matched = True
+        return matched
 
     @classmethod
     def from_env(cls) -> "StaticTokenAuthBackend":
@@ -229,7 +252,7 @@ class StaticTokenAuthBackend:
             )
 
         token = self._parse_authorization_token(request.headers.get("authorization"))
-        if token is None or token not in self._tokens:
+        if token is None or not self._is_valid(token):
             raise HTTPException(status_code=401, detail="Unauthorized.")
 
         owner_id = self._owner_id_from_token(token)
