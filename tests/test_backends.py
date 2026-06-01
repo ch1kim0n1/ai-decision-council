@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -146,6 +148,30 @@ class TestFileStorageBackendMessages:
         conv = storage.get_conversation(uid)
         contents = [m["content"] for m in conv["messages"]]  # type: ignore[index]
         assert contents.index("First") < contents.index("Second")
+
+    def test_concurrent_user_messages_are_preserved(self, tmp_path):
+        storage = _make_storage(tmp_path)
+        uid = _fresh_id()
+        storage.create_conversation(uid)
+        messages = [f"message-{index}" for index in range(24)]
+
+        def add_message(content: str) -> None:
+            backend = FileStorageBackend(data_dir=storage.data_dir)
+            backend.add_user_message(uid, content)
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            list(executor.map(add_message, messages))
+
+        conv = storage.get_conversation(uid)
+        assert conv is not None
+        stored_messages = conv["messages"]
+        assert len(stored_messages) == len(messages)
+        assert sorted(message["content"] for message in stored_messages) == sorted(messages)
+
+        path = storage.get_conversation_path(uid)
+        persisted = json.loads(path.read_text(encoding="utf-8"))
+        assert len(persisted["messages"]) == len(messages)
+        assert list(path.parent.glob("*.tmp")) == []
 
 
 # ---------------------------------------------------------------------------
