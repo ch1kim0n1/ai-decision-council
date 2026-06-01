@@ -7,6 +7,9 @@ import hmac
 import json
 import os
 import tempfile
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +17,11 @@ from typing import Any, Protocol, cast
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, Request
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 
 def _utc_now_iso() -> str:
@@ -79,6 +87,9 @@ class AuthBackend(Protocol):
 class FileStorageBackend:
     """File-backed storage implementation for local and reference deployments."""
 
+    _thread_lock_guard = threading.Lock()
+    _thread_locks: dict[Path, threading.RLock] = {}
+
     def __init__(self, data_dir: str):
         self.data_dir = data_dir
 
@@ -94,6 +105,78 @@ class FileStorageBackend:
         if path.parent != base_dir:
             raise ValueError("conversation_id resolves outside data directory")
         return path
+
+    @classmethod
+    def _thread_lock_for(cls, lock_path: Path) -> threading.RLock:
+        with cls._thread_lock_guard:
+            return cls._thread_locks.setdefault(lock_path, threading.RLock())
+
+    @staticmethod
+    def _lock_file(handle: Any) -> None:
+        if os.name == "nt":
+            handle.seek(0)
+            if handle.read(1) == b"":
+                handle.write(b"\0")
+                handle.flush()
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+
+    @staticmethod
+    def _unlock_file(handle: Any) -> None:
+        if os.name == "nt":
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    @contextmanager
+    def _conversation_lock(self, normalized_id: str) -> Iterator[None]:
+        base_dir = self.ensure_data_dir()
+        lock_path = (base_dir / f"{normalized_id}.lock").resolve()
+        if lock_path.parent != base_dir:
+            raise ValueError("conversation_id lock resolves outside data directory")
+
+        thread_lock = self._thread_lock_for(lock_path)
+        with thread_lock, lock_path.open("a+b") as handle:
+            self._lock_file(handle)
+            try:
+                yield
+            finally:
+                self._unlock_file(handle)
+
+    def _read_conversation_unlocked(self, normalized_id: str) -> dict[str, Any] | None:
+        path = self.get_conversation_path(normalized_id)
+        if not path.exists():
+            return None
+        with path.open("r", encoding="utf-8") as handle:
+            return cast(dict[str, Any], json.load(handle))
+
+    def _write_conversation_unlocked(
+        self,
+        normalized_id: str,
+        conversation: dict[str, Any],
+    ) -> None:
+        payload = dict(conversation)
+        payload["id"] = normalized_id
+        path = self.get_conversation_path(normalized_id)
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=f".{normalized_id}.",
+            suffix=".tmp",
+            dir=path.parent,
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as tmp:
+                json.dump(payload, tmp, indent=2)
+                tmp.write("\n")
+                tmp.flush()
+                os.fsync(tmp.fileno())
+            os.replace(tmp_path, path)
+        except Exception:
+            tmp_path.unlink(missing_ok=True)
+            raise
 
     def create_conversation(
         self,
@@ -112,22 +195,14 @@ class FileStorageBackend:
         return conversation
 
     def get_conversation(self, conversation_id: str | UUID) -> dict[str, Any] | None:
-        path = self.get_conversation_path(conversation_id)
-        if not path.exists():
-            return None
-        with path.open("r", encoding="utf-8") as handle:
-            return cast(dict[str, Any], json.load(handle))
+        normalized_id = _normalize_conversation_id(conversation_id)
+        with self._conversation_lock(normalized_id):
+            return self._read_conversation_unlocked(normalized_id)
 
     def save_conversation(self, conversation: dict[str, Any]) -> None:
         normalized_id = _normalize_conversation_id(conversation["id"])
-        payload = dict(conversation)
-        payload["id"] = normalized_id
-        path = self.get_conversation_path(normalized_id)
-        # Write to temp file first, then rename atomically
-        with tempfile.NamedTemporaryFile(mode='w', dir=os.path.dirname(path), suffix='.tmp', delete=False) as tmp:
-            json.dump(payload, tmp, indent=2)
-            tmp_path = tmp.name
-        os.replace(tmp_path, path)
+        with self._conversation_lock(normalized_id):
+            self._write_conversation_unlocked(normalized_id, conversation)
 
     def list_conversations(self, owner_id: str | None = None) -> list[dict[str, Any]]:
         base_dir = self.ensure_data_dir()
@@ -157,19 +232,21 @@ class FileStorageBackend:
         return conversations
 
     def add_user_message(self, conversation_id: str | UUID, content: str) -> dict[str, Any]:
-        conversation = self.get_conversation(conversation_id)
-        if conversation is None:
-            raise ValueError(f"Conversation {conversation_id} not found")
+        normalized_id = _normalize_conversation_id(conversation_id)
+        with self._conversation_lock(normalized_id):
+            conversation = self._read_conversation_unlocked(normalized_id)
+            if conversation is None:
+                raise ValueError(f"Conversation {conversation_id} not found")
 
-        message = {
-            "id": str(uuid4()),
-            "role": "user",
-            "content": content,
-            "created_at": _utc_now_iso(),
-        }
-        conversation["messages"].append(message)
-        self.save_conversation(conversation)
-        return message
+            message = {
+                "id": str(uuid4()),
+                "role": "user",
+                "content": content,
+                "created_at": _utc_now_iso(),
+            }
+            conversation["messages"].append(message)
+            self._write_conversation_unlocked(normalized_id, conversation)
+            return message
 
     def add_assistant_message(
         self,
@@ -180,30 +257,34 @@ class FileStorageBackend:
         metadata: dict[str, Any] | None = None,
         errors: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        conversation = self.get_conversation(conversation_id)
-        if conversation is None:
-            raise ValueError(f"Conversation {conversation_id} not found")
+        normalized_id = _normalize_conversation_id(conversation_id)
+        with self._conversation_lock(normalized_id):
+            conversation = self._read_conversation_unlocked(normalized_id)
+            if conversation is None:
+                raise ValueError(f"Conversation {conversation_id} not found")
 
-        message = {
-            "id": str(uuid4()),
-            "role": "assistant",
-            "stage1": stage1,
-            "stage2": stage2,
-            "stage3": stage3,
-            "metadata": metadata or {},
-            "errors": errors or [],
-            "created_at": _utc_now_iso(),
-        }
-        conversation["messages"].append(message)
-        self.save_conversation(conversation)
-        return message
+            message = {
+                "id": str(uuid4()),
+                "role": "assistant",
+                "stage1": stage1,
+                "stage2": stage2,
+                "stage3": stage3,
+                "metadata": metadata or {},
+                "errors": errors or [],
+                "created_at": _utc_now_iso(),
+            }
+            conversation["messages"].append(message)
+            self._write_conversation_unlocked(normalized_id, conversation)
+            return message
 
     def update_conversation_title(self, conversation_id: str | UUID, title: str) -> None:
-        conversation = self.get_conversation(conversation_id)
-        if conversation is None:
-            raise ValueError(f"Conversation {conversation_id} not found")
-        conversation["title"] = title
-        self.save_conversation(conversation)
+        normalized_id = _normalize_conversation_id(conversation_id)
+        with self._conversation_lock(normalized_id):
+            conversation = self._read_conversation_unlocked(normalized_id)
+            if conversation is None:
+                raise ValueError(f"Conversation {conversation_id} not found")
+            conversation["title"] = title
+            self._write_conversation_unlocked(normalized_id, conversation)
 
 
 class StaticTokenAuthBackend:
@@ -235,7 +316,7 @@ class StaticTokenAuthBackend:
         return matched
 
     @classmethod
-    def from_env(cls) -> "StaticTokenAuthBackend":
+    def from_env(cls) -> StaticTokenAuthBackend:
         raw = os.getenv("LLM_COUNCIL_REFERENCE_API_KEYS") or os.getenv(
             "LLM_COUNCIL_REFERENCE_API_TOKEN"
         )
